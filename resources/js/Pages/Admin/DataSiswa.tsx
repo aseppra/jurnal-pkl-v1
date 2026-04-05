@@ -33,7 +33,7 @@ interface Props {
         total: number;
     };
     kelasList: KelasItem[];
-    filters: { search?: string };
+    filters: { search?: string; class?: string };
 }
 
 export default function DataSiswa({ siswas, kelasList, filters }: Props) {
@@ -76,7 +76,7 @@ function SearchableKelasDropdown({ kelasList, value, onChange }: { kelasList: Ke
 
     return (
         <div className="relative" ref={ref}>
-            <button type="button" onClick={() => { setOpen(!open); setFilter(''); }} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm text-left flex items-center justify-between bg-white">
+            <button type="button" onClick={() => { setOpen(!open); setFilter(''); }} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-xs text-left flex items-center justify-between bg-white">
                 <span className={value ? 'text-slate-900' : 'text-slate-400'}>
                     {selected ? `${selected.name}${selected.description ? ` — ${selected.description}` : ''}` : 'Pilih Kelas'}
                 </span>
@@ -92,7 +92,7 @@ function SearchableKelasDropdown({ kelasList, value, onChange }: { kelasList: Ke
                                 value={filter}
                                 onChange={e => setFilter(e.target.value)}
                                 placeholder="Cari kelas..."
-                                className="w-full pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
                                 autoFocus
                             />
                         </div>
@@ -106,7 +106,7 @@ function SearchableKelasDropdown({ kelasList, value, onChange }: { kelasList: Ke
                                 key={k.id}
                                 type="button"
                                 onClick={() => { onChange(k.name); setOpen(false); }}
-                                className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/5 transition-colors flex items-center justify-between ${value === k.name ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700'}`}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-primary/5 transition-colors flex items-center justify-between ${value === k.name ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700'}`}
                             >
                                 <span>{k.name}{k.description ? ` — ${k.description}` : ''}</span>
                                 {value === k.name && <span className="material-symbols-outlined text-sm text-primary">check</span>}
@@ -129,22 +129,31 @@ function SiswaTab({ siswas, filters, kelasList }: { siswas: Props['siswas']; fil
     const [searchQuery, setSearchQuery] = useState(filters.search || '');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [showFilter, setShowFilter] = useState(false);
     const addRef = useRef<HTMLDivElement>(null);
     const genRef = useRef<HTMLDivElement>(null);
+    const filterRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (addRef.current && !addRef.current.contains(e.target as Node)) setShowAddDropdown(false);
             if (genRef.current && !genRef.current.contains(e.target as Node)) setShowGenerateDropdown(false);
+            if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilter(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
+    const applyFilter = (key: string, val: string) => {
+        router.get(route('admin.siswa.index'), { ...filters, [key]: val || undefined }, { preserveState: true, replace: true });
+    };
+
     const handleSearch = (val: string) => {
         setSearchQuery(val);
-        router.get(route('admin.siswa.index'), { search: val || undefined }, { preserveState: true, replace: true });
+        applyFilter('search', val);
     };
+
+    const activeFilterCount = [filters.class].filter(Boolean).length;
 
     const handleAdd = () => {
         setShowAddDropdown(false);
@@ -245,16 +254,54 @@ function SiswaTab({ siswas, filters, kelasList }: { siswas: Props['siswas']; fil
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-slate-200 bg-slate-50/50">
-                    <div className="relative w-full md:w-64">
+                <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50/50">
+                    {/* Filter Icon Dropdown */}
+                    <div className="relative" ref={filterRef}>
+                        <button
+                            onClick={() => setShowFilter(!showFilter)}
+                            className={`relative flex items-center justify-center size-10 rounded-lg border transition-colors ${activeFilterCount > 0 ? 'bg-primary/10 border-primary text-primary' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                            title="Filter"
+                        >
+                            <span className="material-symbols-outlined text-xl">filter_list</span>
+                            {activeFilterCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 size-5 bg-primary text-white rounded-full text-[10px] font-bold flex items-center justify-center">{activeFilterCount}</span>
+                            )}
+                        </button>
+                        {showFilter && (
+                            <div className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-30 overflow-hidden">
+                                <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Filter Data</span>
+                                    {activeFilterCount > 0 && (
+                                        <button onClick={() => { applyFilter('class', ''); setShowFilter(false); }} className="text-[10px] font-bold text-red-500 hover:text-red-700 uppercase">Reset</button>
+                                    )}
+                                </div>
+                                <div className="p-3 space-y-3">
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kelas</label>
+                                        <select
+                                            value={filters.class || ''}
+                                            onChange={(e) => { applyFilter('class', e.target.value); }}
+                                            title="Filter Kelas"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                                        >
+                                            <option value="">Semua Kelas</option>
+                                            {kelasList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {/* Search Input */}
+                    <div className="relative flex-1 max-w-sm">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                        <input className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-primary" placeholder="Cari siswa..." value={searchQuery} onChange={(e) => handleSearch(e.target.value)} />
+                        <input className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-primary focus:bg-white transition-colors" placeholder="Cari nama atau NISN..." value={searchQuery} onChange={(e) => handleSearch(e.target.value)} />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left min-w-[800px]">
                         <thead>
-                            <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                            <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                                 <th className="px-4 py-4 w-10">
                                     <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="rounded border-slate-300 text-primary focus:ring-primary/50 cursor-pointer" title="Pilih semua" />
                                 </th>
@@ -272,16 +319,16 @@ function SiswaTab({ siswas, filters, kelasList }: { siswas: Props['siswas']; fil
                                     <td className="px-4 py-4">
                                         <input type="checkbox" checked={selectedIds.includes(s.id)} onChange={() => toggleSelect(s.id)} className="rounded border-slate-300 text-primary focus:ring-primary/50 cursor-pointer" title={`Pilih ${s.name}`} />
                                     </td>
-                                    <td className="px-4 py-4 text-sm font-mono text-slate-600">{s.nisn}</td>
+                                    <td className="px-4 py-4 text-xs font-mono text-slate-600">{s.nisn}</td>
                                     <td className="px-4 py-4">
-                                        <div className="text-sm font-semibold text-slate-900">{s.name}</div>
+                                        <div className="text-xs font-semibold text-slate-900">{s.name}</div>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             {s.gender && <span className="text-xs text-slate-500">{s.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</span>}
                                             {s.gender && s.email && <span className="text-slate-300">·</span>}
                                             {s.email && <span className="text-xs text-slate-400">{s.email}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-4 text-sm text-slate-500">{s.class}</td>
+                                    <td className="px-4 py-4 text-xs text-slate-500">{s.class}</td>
                                     <td className="px-4 py-4">
                                         {s.account_status === 'Generated' ? (
                                             <div className="flex flex-col gap-1">
@@ -373,7 +420,7 @@ function SiswaTab({ siswas, filters, kelasList }: { siswas: Props['siswas']; fil
                             </div>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => { setEditingSiswa(null); setIsAdding(false); }} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => { setEditingSiswa(null); setIsAdding(false); }} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleSave} className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors shadow-sm">Simpan</button>
                         </div>
                     </div>
@@ -393,7 +440,7 @@ function SiswaTab({ siswas, filters, kelasList }: { siswas: Props['siswas']; fil
                             <p className="text-sm text-slate-500">Data siswa yang dihapus tidak dapat dikembalikan.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={confirmDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus</button>
                         </div>
                     </div>
@@ -413,7 +460,7 @@ function SiswaTab({ siswas, filters, kelasList }: { siswas: Props['siswas']; fil
                             <p className="text-sm text-slate-500">Semua data siswa yang dipilih akan dihapus permanen beserta akun terkait.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setShowBulkDeleteModal(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setShowBulkDeleteModal(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleBulkDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus Semua</button>
                         </div>
                     </div>

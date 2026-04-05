@@ -26,6 +26,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
     const [recipients, setRecipients] = useState<string[]>([]);
     const [sending, setSending] = useState(false);
     const [toast, setToast] = useState(false);
+    const [recipientSearch, setRecipientSearch] = useState('');
     const filterRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -34,7 +35,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
         return () => document.removeEventListener('mousedown', h);
     }, []);
 
-    const openModal = (nisn?: string) => { setRecipients(nisn ? [nisn] : []); setShowModal(true); };
+    const openModal = (nisn?: string) => { setRecipients(nisn ? [nisn] : []); setRecipientSearch(''); setShowModal(true); };
     const toggleRecipient = (nisn: string) => setRecipients(prev => prev.includes(nisn) ? prev.filter(id => id !== nisn) : [...prev, nisn]);
 
     const applyFilter = (key: string, val: string) => {
@@ -98,7 +99,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                                             value={filters.status || ''}
                                             onChange={(e) => { applyFilter('status', e.target.value); }}
                                             title="Filter Status"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
                                         >
                                             <option value="">Semua Status</option>
                                             <option value="hadir">Hadir</option>
@@ -113,7 +114,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                                             value={filters.class || ''}
                                             onChange={(e) => { applyFilter('class', e.target.value); }}
                                             title="Filter Kelas"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
                                         >
                                             <option value="">Semua Kelas</option>
                                             {classes.map(c => <option key={c} value={c}>{c}</option>)}
@@ -129,23 +130,23 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                         <input
                             value={search}
                             onChange={(e) => handleSearch(e.target.value)}
-                            className="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary"
+                            className="w-full h-10 pl-10 pr-4 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-primary"
                             placeholder="Cari nama atau NISN..."
                         />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead><tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        <thead><tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                             <th className="px-6 py-4">Nama Siswa</th><th className="px-6 py-4">NISN</th><th className="px-6 py-4">Perusahaan</th><th className="px-6 py-4">Check-in</th><th className="px-6 py-4 text-center">Status</th><th className="px-6 py-4 text-right">Aksi</th>
                         </tr></thead>
                         <tbody className="divide-y divide-slate-100">
                             {students.data.map((s) => (
                                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">{s.name.split(' ').map(n => n[0]).join('')}</div><p className="text-sm font-semibold">{s.name}</p></div></td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{s.nisn}</td>
-                                    <td className="px-6 py-4 text-sm font-medium">{s.company}</td>
-                                    <td className="px-6 py-4 text-sm font-mono font-bold text-slate-600">{s.lastCheckin}</td>
+                                    <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">{s.name.split(' ').map(n => n[0]).join('')}</div><p className="text-xs font-semibold">{s.name}</p></div></td>
+                                    <td className="px-6 py-4 text-xs text-slate-500">{s.nisn}</td>
+                                    <td className="px-6 py-4 text-xs font-medium">{s.company}</td>
+                                    <td className="px-6 py-4 text-xs font-mono font-bold text-slate-600">{s.lastCheckin}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col items-center justify-center gap-1.5 min-h-[48px]">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${s.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-800' : s.statusColor === 'orange' ? 'bg-orange-100 text-orange-800' : s.statusColor === 'red' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'}`}>
@@ -172,8 +173,8 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                 </div>
                 {students.last_page > 1 && (
                     <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-                        <span className="text-sm text-slate-500">Menampilkan {students.from} - {students.to} dari {students.total}</span>
-                        <div className="flex gap-1">{students.links.map((l: any, i: number) => <button key={i} disabled={!l.url} onClick={() => l.url && router.get(l.url)} className={`px-3 py-1 rounded text-sm ${l.active ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-200'} disabled:opacity-50`} dangerouslySetInnerHTML={{ __html: l.label }} />)}</div>
+                        <span className="text-xs text-slate-500">Menampilkan {students.from} - {students.to} dari {students.total}</span>
+                        <div className="flex gap-1">{students.links.map((l: any, i: number) => <button key={i} disabled={!l.url} onClick={() => l.url && router.get(l.url)} className={`px-3 py-1 rounded text-xs ${l.active ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-200'} disabled:opacity-50`} dangerouslySetInnerHTML={{ __html: l.label }} />)}</div>
                     </div>
                 )}
             </div>
@@ -198,8 +199,24 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                                     <label className="text-sm font-bold text-slate-700">Pilih Penerima</label>
                                     <button onClick={() => setRecipients([])} className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${recipients.length === 0 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>Kirim ke Semua</button>
                                 </div>
+                                {/* Recipient Search */}
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Cari siswa berdasarkan nama atau NISN..."
+                                        value={recipientSearch}
+                                        onChange={(e) => setRecipientSearch(e.target.value)}
+                                        className="w-full text-sm pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition-colors"
+                                    />
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2">
-                                    {allStudents.map((s) => (
+                                    {allStudents
+                                        .filter(s =>
+                                            s.name.toLowerCase().includes(recipientSearch.toLowerCase()) ||
+                                            s.nisn.toLowerCase().includes(recipientSearch.toLowerCase())
+                                        )
+                                        .map((s) => (
                                         <div key={s.nisn} onClick={() => toggleRecipient(s.nisn)} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${recipients.includes(s.nisn) ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-slate-100 bg-slate-50 hover:border-slate-200'}`}>
                                             <div className={`size-5 rounded flex items-center justify-center ${recipients.includes(s.nisn) ? 'bg-primary text-white' : 'bg-white border border-slate-300'}`}>
                                                 {recipients.includes(s.nisn) && <span className="material-symbols-outlined text-[14px]">check</span>}
@@ -213,7 +230,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                         <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                             <p className="text-[11px] text-slate-500">{recipients.length === 0 ? 'Mengirim ke semua siswa' : `Mengirim ke ${recipients.length} siswa`}</p>
                             <div className="flex gap-3">
-                                <button onClick={() => setShowModal(false)} className="px-6 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-lg">Batal</button>
+                                <button onClick={() => setShowModal(false)} className="px-6 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                                 <button onClick={sendReminder} disabled={sending || !message.trim()} className="px-8 py-2 bg-primary text-white text-sm font-bold rounded-lg shadow-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
                                     {sending ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>Mengirim...</> : <><span className="material-symbols-outlined text-sm">send</span>Kirim</>}
                                 </button>

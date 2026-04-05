@@ -38,30 +38,35 @@ function BottomNav({ unreadCount }: { unreadCount: number }) {
     const items = [
         { label: 'Home', icon: 'grid_view', path: '/dashboard' },
         { label: 'Jurnal', icon: 'menu_book', path: '/jurnal-saya' },
+        { label: 'Rekap', icon: 'summarize', path: '/rekapitulasi' },
         { label: 'Profil', icon: 'person', path: '/profile' },
     ];
 
     return (
         <React.Fragment>
-            <div className="md:hidden h-16 w-full shrink-0"></div>
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 pb-[calc(10px+env(safe-area-inset-bottom))] pt-2 flex justify-center gap-20 items-center z-[9999] md:hidden shadow-[0_-4px_10px_-1px_rgba(0,0,0,0.05)] pointer-events-auto">
-                {items.map((item) => {
-                    const isActive = url.startsWith(item.path);
-                    return (
-                        <Link key={item.path} href={item.path} className={`flex flex-col items-center gap-1 transition-all relative px-4 py-1.5 rounded-xl ${isActive ? 'text-primary bg-primary/10' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}>
-                            <span className="relative">
-                                <span className={`material-symbols-outlined text-2xl ${isActive ? 'font-bold' : ''}`}>{item.icon}</span>
+            <div className="md:hidden h-28 w-full shrink-0"></div>
+            <div className="fixed bottom-0 left-0 right-0 z-[9999] md:hidden pointer-events-none p-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex justify-center">
+                <nav className="bg-white/60 backdrop-blur-md border border-white/50 rounded-full px-2 py-2 flex justify-between items-center shadow-[0_8px_30px_rgb(0,0,0,0.12)] pointer-events-auto w-full max-w-[360px]">
+                    {items.map((item) => {
+                        const isActive = url.startsWith(item.path);
+                        return (
+                            <Link key={item.path} href={item.path} className={`flex flex-col items-center justify-center relative w-16 h-14 rounded-[20px] transition-all duration-300 ${isActive ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:bg-slate-100/50 hover:text-slate-600'}`}>
+                                <span className={`material-symbols-outlined text-[26px] transition-transform duration-300 ${isActive ? '-translate-y-2 font-bold fill-[1]' : ''}`} style={isActive ? {fontVariationSettings: "'FILL' 1"} : {}}>
+                                    {item.icon}
+                                </span>
                                 {item.path === '/dashboard' && unreadCount > 0 && (
-                                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 border-2 border-white">
+                                    <span className={`absolute ${isActive ? 'top-0 right-2' : 'top-1.5 right-3'} min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 border-2 border-white shadow-sm transition-all`}>
                                         {unreadCount > 99 ? '99+' : unreadCount}
                                     </span>
                                 )}
-                            </span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>
-                        </Link>
-                    );
-                })}
-            </nav>
+                                <span className={`text-[10px] font-bold tracking-wide absolute bottom-1.5 transition-all duration-300 ${isActive ? 'opacity-100 translate-y-0 text-primary' : 'opacity-0 translate-y-2'}`}>
+                                    {item.label}
+                                </span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </div>
         </React.Fragment>
     );
 }
@@ -133,6 +138,7 @@ export default function StudentLayout({ children, title, subtitle, showBack, sho
                 <nav className="flex-1 p-4 space-y-2">
                     <SidebarItem icon="dashboard" label="Dashboard" href={route('student.dashboard')} active={url === '/dashboard'} />
                     <SidebarItem icon="history_edu" label="Jurnal Saya" href={route('student.journal')} active={url === '/jurnal-saya'} />
+                    <SidebarItem icon="summarize" label="Rekapitulasi" href={route('student.rekapitulasi')} active={url.startsWith('/rekapitulasi')} />
                     <SidebarItem icon="person" label="Profil Akun" href={route('student.profile')} active={url === '/profile'} />
                 </nav>
                 <div className="p-4 border-t border-slate-200">

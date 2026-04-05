@@ -24,6 +24,10 @@ class SiswaController extends Controller
             });
         }
 
+        if ($class = $request->input('class')) {
+            $query->where('class', $class);
+        }
+
         $siswas = $query->latest()->paginate(10)->withQueryString();
 
         $siswas->getCollection()->transform(function ($siswa) {
@@ -35,7 +39,7 @@ class SiswaController extends Controller
         return Inertia::render('Admin/DataSiswa', [
             'siswas' => $siswas,
             'kelasList' => Kelas::orderBy('name')->get(),
-            'filters' => $request->only('search'),
+            'filters' => $request->only('search', 'class'),
         ]);
     }
 

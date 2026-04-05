@@ -14,6 +14,8 @@ use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
@@ -29,7 +31,68 @@ class SettingsController extends Controller
                 'attendance' => Attendance::count(),
                 'helpRequest' => HelpRequest::count(),
             ],
+            'admins' => User::where('role', 'admin')
+                ->select('id', 'name', 'username', 'email', 'phone', 'is_active', 'created_at')
+                ->orderBy('created_at', 'desc')
+                ->get(),
         ]);
+    }
+
+    public function storeAdmin(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'nullable|email|max:255|unique:users,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'password' => Hash::make($validated['password']),
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        ActivityLog::log('Tambah Akun Admin', "Menambahkan akun admin baru: {$user->name} ({$user->username})");
+
+        return redirect()->back()->with('success', "Berhasil menambahkan akun admin: {$user->name}");
+    }
+
+    public function updateAdmin(Request $request, User $user)
+    {
+        if ($user->role !== 'admin') {
+            abort(403, 'User bukan admin.');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'phone' => 'nullable|string|max:20',
+            'password' => 'nullable|string|min:6|confirmed',
+            'is_active' => 'boolean',
+        ]);
+
+        $user->name = $validated['name'];
+        $user->username = $validated['username'];
+        $user->email = $validated['email'] ?? null;
+        $user->phone = $validated['phone'] ?? null;
+        if (isset($validated['is_active'])) {
+            $user->is_active = $validated['is_active'];
+        }
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+        $user->save();
+
+        ActivityLog::log('Update Akun Admin', "Memperbarui akun admin: {$user->name} ({$user->username})");
+
+        return redirect()->back()->with('success', "Berhasil memperbarui akun admin: {$user->name}");
     }
 
     public function resetSiswa()

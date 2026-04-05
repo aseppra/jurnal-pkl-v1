@@ -38,8 +38,8 @@ class DudiController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'contact' => 'nullable|string|max:50',
-            'jam_masuk' => 'nullable|string|max:5',
-            'jam_pulang' => 'nullable|string|max:5',
+            'jam_masuk' => 'nullable|string|max:10',
+            'jam_pulang' => 'nullable|string|max:10',
             'student_ids' => 'nullable|array',
             'student_ids.*' => 'integer|exists:siswas,id'
         ]);
@@ -70,8 +70,8 @@ class DudiController extends Controller
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'contact' => 'nullable|string|max:50',
-            'jam_masuk' => 'nullable|string|max:5',
-            'jam_pulang' => 'nullable|string|max:5',
+            'jam_masuk' => 'nullable|string|max:10',
+            'jam_pulang' => 'nullable|string|max:10',
             'student_ids' => 'nullable|array',
             'student_ids.*' => 'integer|exists:siswas,id'
         ]);

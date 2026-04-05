@@ -27,7 +27,7 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
     };
 
     return (
-        <StudentLayout title="Jurnal Saya" subtitle="Catatan Kegiatan Harian PKL" showBack studentGender={siswa?.gender}>
+        <StudentLayout title="Jurnal Saya" subtitle="Catatan Kegiatan Harian PKL" showNotificationBell studentGender={siswa?.gender}>
             <Head title="Jurnal Saya" />
 
             {flash?.success && (
@@ -39,9 +39,9 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
             {/* Filter + Add Button */}
             <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                    {['all', 'pending', 'verified'].map(f => (
+                    {['all', 'harian', 'mingguan', 'bulanan'].map(f => (
                         <button key={f} onClick={() => router.get(route('student.journal'), { filter: f === 'all' ? undefined : f }, { preserveState: true })} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${(filters.filter || 'all') === f || (!filters.filter && f === 'all') ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                            {f === 'all' ? 'Semua' : f === 'pending' ? 'Menunggu' : 'Terverifikasi'}
+                            {f === 'all' ? 'Semua' : f === 'harian' ? 'Harian' : f === 'mingguan' ? 'Mingguan' : 'Bulanan'}
                         </button>
                     ))}
                 </div>

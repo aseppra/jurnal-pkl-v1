@@ -1,6 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import Portal from '@/Components/Portal';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
 
 interface Dudi { id: number; name: string; address: string; contact: string; jam_masuk: string; jam_pulang: string; siswas_count: number; }
@@ -11,6 +11,10 @@ interface Props {
 }
 
 export default function DataDudi({ dudis, allSiswas, filters }: Props) {
+    const { props } = usePage();
+    const flash = (props as any).flash;
+    const errors = (props as any).errors || {};
+
     const [editing, setEditing] = useState<any>(null);
     const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
     const [studentSearch, setStudentSearch] = useState('');
@@ -82,6 +86,27 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
     return (
         <AdminLayout title="Data DUDI" subtitle="Manajemen Data Instansi DUDI Mitra PKL">
             <Head title="Data DUDI" />
+
+            {flash?.success && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>{flash.success}
+                </div>
+            )}
+            
+            {Object.keys(errors).length > 0 && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex gap-2 mb-4">
+                    <span className="material-symbols-outlined text-[20px] shrink-0">error</span>
+                    <div>
+                        <p className="font-bold mb-1">Penyimpanan Gagal</p>
+                        <ul className="list-disc pl-4 opacity-80">
+                            {Object.values(errors).map((err: any, i) => (
+                                <li key={i}>{err}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+
             <div className="flex justify-between">
                 <div>
                     {selectedIds.length > 1 && (
@@ -108,12 +133,12 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
                 <div className="p-4 border-b border-slate-200 bg-slate-50/50">
                     <div className="relative w-full md:w-64">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                        <input title="Cari perusahaan" className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-primary" placeholder="Cari perusahaan..." value={search} onChange={(e) => handleSearch(e.target.value)} />
+                        <input title="Cari perusahaan" className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-primary" placeholder="Cari perusahaan..." value={search} onChange={(e) => handleSearch(e.target.value)} />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left min-w-[800px]">
-                        <thead><tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        <thead><tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                             <th className="px-4 py-4 w-10"><input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="rounded border-slate-300 text-primary focus:ring-primary/50 cursor-pointer" title="Pilih semua" /></th>
                             <th className="px-6 py-4">Nama Perusahaan</th><th className="px-6 py-4">Alamat</th><th className="px-6 py-4">Kontak</th><th className="px-6 py-4 text-center">Siswa Aktif</th><th className="px-6 py-4 text-right">Aksi</th>
                         </tr></thead>
@@ -121,9 +146,9 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
                             {dudis.data.map((c) => (
                                 <tr key={c.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.includes(c.id) ? 'bg-primary/5' : ''}`}>
                                     <td className="px-4 py-4"><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelect(c.id)} className="rounded border-slate-300 text-primary focus:ring-primary/50 cursor-pointer" title={`Pilih ${c.name}`} /></td>
-                                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{c.name}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{c.address}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{c.contact}</td>
+                                    <td className="px-6 py-4 text-xs font-semibold text-slate-900">{c.name}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-500">{c.address}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-600">{c.contact}</td>
                                     <td className="px-6 py-4 text-center"><span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{c.siswas_count}</span></td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
@@ -216,7 +241,7 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
                                     </div>
 
                                     {/* Daftar Siswa Terpilih */}
-                                    <div className="bg-slate-50 rounded-lg border border-slate-200 p-2 min-h-[160px] max-h-[220px] overflow-y-auto space-y-1">
+                                    <div className="bg-slate-50 rounded-lg border border-slate-200 p-2 min-h-[160px] max-h-[310px] overflow-y-auto space-y-1">
                                         {selectedStudents.length === 0 ? (
                                             <div className="h-full flex flex-col items-center justify-center text-slate-400 py-8">
                                                 <span className="material-symbols-outlined text-3xl mb-1">group_off</span>
@@ -244,7 +269,7 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
                             </div>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3 shrink-0">
-                            <button onClick={() => { setEditing(null); setIsAdding(false); }} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => { setEditing(null); setIsAdding(false); }} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleSave} className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors shadow-sm">Simpan</button>
                         </div>
                     </div>
@@ -261,7 +286,7 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
                             <p className="text-sm text-slate-500">Data yang dihapus tidak dapat dikembalikan.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={confirmDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus</button>
                         </div>
                     </div>
@@ -278,7 +303,7 @@ export default function DataDudi({ dudis, allSiswas, filters }: Props) {
                             <p className="text-sm text-slate-500">Semua data perusahaan yang dipilih akan dihapus permanen.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setShowBulkDeleteModal(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setShowBulkDeleteModal(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleBulkDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus Semua</button>
                         </div>
                     </div>

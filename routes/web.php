@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DudiController;
 use App\Http\Controllers\Admin\PembimbingController;
 use App\Http\Controllers\Admin\MonitoringController;
 use App\Http\Controllers\Admin\RekapitulasiController;
+use App\Http\Controllers\Admin\RekapitulasiDudiController;
 use App\Http\Controllers\Admin\HelpdeskController;
 use App\Http\Controllers\Admin\ImportDataController;
 use App\Http\Controllers\Admin\PeriodePklController;
@@ -75,6 +76,11 @@ Route::middleware(['auth', 'role:admin,pembimbing'])->prefix('admin')->group(fun
     // Rekapitulasi
     Route::get('/rekapitulasi', [RekapitulasiController::class, 'index'])->name('admin.rekapitulasi');
     Route::get('/rekapitulasi/{siswa}', [RekapitulasiController::class, 'show'])->name('admin.rekapitulasi.show');
+    Route::get('/rekapitulasi/{siswa}/export-presensi', [RekapitulasiController::class, 'exportPresensiPdf'])->name('admin.rekapitulasi.export-presensi');
+    Route::get('/rekapitulasi/{siswa}/export-jurnal', [RekapitulasiController::class, 'exportJurnalPdf'])->name('admin.rekapitulasi.export-jurnal');
+
+    Route::get('/rekapitulasi-dudi', [RekapitulasiDudiController::class, 'index'])->name('admin.rekapitulasi-dudi');
+    Route::get('/rekapitulasi-dudi/export-pdf', [RekapitulasiDudiController::class, 'exportPdf'])->name('admin.rekapitulasi-dudi.export');
 
     // Helpdesk
     Route::get('/helpdesk', [HelpdeskController::class, 'index'])->name('admin.helpdesk');
@@ -89,6 +95,8 @@ Route::middleware(['auth', 'role:admin,pembimbing'])->prefix('admin')->group(fun
     Route::post('/settings/reset-periode', [\App\Http\Controllers\Admin\SettingsController::class, 'resetPeriodePkl'])->name('admin.settings.reset-periode');
     Route::post('/settings/reset-helpdesk', [\App\Http\Controllers\Admin\SettingsController::class, 'resetHelpdesk'])->name('admin.settings.reset-helpdesk');
     Route::post('/settings/reset-all', [\App\Http\Controllers\Admin\SettingsController::class, 'resetAll'])->name('admin.settings.reset-all');
+    Route::post('/settings/admin', [\App\Http\Controllers\Admin\SettingsController::class, 'storeAdmin'])->name('admin.settings.store-admin');
+    Route::put('/settings/admin/{user}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateAdmin'])->name('admin.settings.update-admin');
 
     // Log Aktivitas
     Route::get('/log-aktivitas', [\App\Http\Controllers\Admin\LogAktivitasController::class, 'index'])->name('admin.log-aktivitas');
@@ -105,6 +113,10 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     Route::post('/jurnal-saya', [JournalController::class, 'store'])->name('student.journal.store');
 
     Route::get('/profile', [StudentProfileController::class, 'index'])->name('student.profile');
+
+    Route::get('/rekapitulasi', [\App\Http\Controllers\Student\RekapitulasiController::class, 'index'])->name('student.rekapitulasi');
+    Route::get('/rekapitulasi/export-presensi', [\App\Http\Controllers\Student\RekapitulasiController::class, 'exportPresensiPdf'])->name('student.rekapitulasi.export-presensi');
+    Route::get('/rekapitulasi/export-jurnal', [\App\Http\Controllers\Student\RekapitulasiController::class, 'exportJurnalPdf'])->name('student.rekapitulasi.export-jurnal');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('student.notifications');
     Route::patch('/notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('student.notifications.read');

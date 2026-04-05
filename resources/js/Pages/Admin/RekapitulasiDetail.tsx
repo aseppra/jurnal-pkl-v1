@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import Portal from '@/Components/Portal';
 import { Head, router, Link } from '@inertiajs/react';
 import React, { useState } from 'react';
 
@@ -12,6 +13,9 @@ export default function RekapitulasiDetail({ siswa, attendances, journals, filte
         start: filters.start_date || '', 
         end: filters.end_date || '' 
     });
+
+    const [previewModal, setPreviewModal] = useState<{ url: string; downloadUrl: string; title: string } | null>(null);
+    const [iframeLoading, setIframeLoading] = useState(true);
 
     const applyFilter = (start: string, end: string) => {
         router.get(route('admin.rekapitulasi.show', siswa.id), { start_date: start, end_date: end }, { preserveState: true, replace: true });
@@ -39,13 +43,23 @@ export default function RekapitulasiDetail({ siswa, attendances, journals, filte
             const mD = String(pastMonth.getDate()).padStart(2, '0');
             applyFilter(`${mY}-${mM}-${mD}`, todayStr);
         } else {
-            applyFilter('', ''); // Let controller use Global Setting PKL period
+            applyFilter('', '');
         }
     };
 
     const handleCustomFilter = (e: React.FormEvent) => {
         e.preventDefault();
         applyFilter(dateRange.start, dateRange.end);
+    };
+
+    const openPreview = (type: 'presensi' | 'jurnal') => {
+        const routeName = type === 'presensi' ? 'admin.rekapitulasi.export-presensi' : 'admin.rekapitulasi.export-jurnal';
+        const params = { siswa: siswa.id, start_date: filters.start_date, end_date: filters.end_date };
+        const previewUrl = route(routeName, params);
+        const dlUrl = route(routeName, { ...params, download: 1 });
+        const title = type === 'presensi' ? 'Preview Rekap Presensi' : 'Preview Rekap Jurnal';
+        setIframeLoading(true);
+        setPreviewModal({ url: previewUrl, downloadUrl: dlUrl, title });
     };
 
     const getStatusBadge = (status: string) => {
@@ -63,11 +77,27 @@ export default function RekapitulasiDetail({ siswa, attendances, journals, filte
         <AdminLayout title={`Rekapitulasi: ${siswa.name}`} subtitle="Detail kehadiran dan jurnal harian siswa">
             <Head title={`Detail Rekap: ${siswa.name}`} />
 
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <Link href={route('admin.rekapitulasi')} className="inline-flex items-center gap-2 text-slate-500 hover:text-primary transition-colors text-sm font-semibold">
                     <span className="material-symbols-outlined">arrow_back</span>
                     Kembali ke Daftar
                 </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => openPreview('presensi')}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                    >
+                        <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                        Export Presensi
+                    </button>
+                    <button
+                        onClick={() => openPreview('jurnal')}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+                    >
+                        <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                        Export Jurnal
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -121,8 +151,8 @@ export default function RekapitulasiDetail({ siswa, attendances, journals, filte
                         </span>
                     </div>
                     <div className="overflow-x-auto flex-1 h-[500px] overflow-y-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="sticky top-0 bg-white shadow-sm ring-1 ring-slate-200/50 z-10 text-slate-500 font-semibold text-xs border-b border-slate-200">
+                        <table className="w-full text-left text-xs">
+                            <thead className="sticky top-0 bg-white shadow-sm ring-1 ring-slate-200/50 z-10 text-slate-500 font-bold text-[10px] border-b border-slate-200 uppercase tracking-wider">
                                 <tr>
                                     <th className="p-4">Tanggal</th>
                                     <th className="p-4">Masuk / Pulang</th>
@@ -176,8 +206,8 @@ export default function RekapitulasiDetail({ siswa, attendances, journals, filte
                                 <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0 pl-2">
-                                        <h4 className="font-bold text-slate-800 text-sm truncate">{new Date(journal.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h4>
-                                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{journal.activity}</p>
+                                        <h4 className="font-bold text-slate-800 text-xs truncate">{new Date(journal.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h4>
+                                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{journal.activity}</p>
                                     </div>
                                     {journal.image_path ? (
                                         <a href={`/storage/${journal.image_path}`} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center gap-1.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-bold transition-colors border border-indigo-200">
@@ -202,6 +232,59 @@ export default function RekapitulasiDetail({ siswa, attendances, journals, filte
                     </div>
                 </div>
             </div>
+
+            {/* PDF Preview Modal */}
+            {previewModal && (
+                <Portal>
+                    <div className="fixed inset-0 z-[10000] flex flex-col bg-black/60 backdrop-blur-sm">
+                        {/* Modal Header Bar */}
+                        <div className="shrink-0 bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="size-9 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white">
+                                    <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900">{previewModal.title}</h3>
+                                    <p className="text-[10px] text-slate-500 font-medium">{siswa.name} &bull; {siswa.nisn}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={previewModal.downloadUrl}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-200 hover:shadow-lg"
+                                >
+                                    <span className="material-symbols-outlined text-sm">download</span>
+                                    Download PDF
+                                </a>
+                                <button
+                                    onClick={() => setPreviewModal(null)}
+                                    title="Tutup preview"
+                                    className="size-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* PDF Iframe */}
+                        <div className="flex-1 relative">
+                            {iframeLoading && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
+                                    <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                                    <p className="text-sm font-semibold text-slate-600">Memuat preview PDF...</p>
+                                    <p className="text-xs text-slate-400 mt-1">Mohon tunggu sebentar</p>
+                                </div>
+                            )}
+                            <iframe
+                                src={previewModal.url}
+                                className="w-full h-full border-0"
+                                onLoad={() => setIframeLoading(false)}
+                                title="PDF Preview"
+                            />
+                        </div>
+                    </div>
+                </Portal>
+            )}
         </AdminLayout>
     );
 }

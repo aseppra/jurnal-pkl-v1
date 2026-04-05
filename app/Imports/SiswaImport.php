@@ -9,18 +9,14 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithValidation;
 
-class SiswaImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChunkReading
+class SiswaImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChunkReading, WithValidation
 {
     public function model(array $row)
     {
         if (empty($row['nama_lengkap']) || empty($row['nisn'])) {
             return null; // Skip empty rows
-        }
-
-        // Check if NISN already exists
-        if (Siswa::where('nisn', $row['nisn'])->exists()) {
-            return null;
         }
 
         return new Siswa([
@@ -31,6 +27,20 @@ class SiswaImport implements ToModel, WithHeadingRow, WithBatchInserts, WithChun
             'class' => $row['kelas'] ?? '',
             'email' => $row['email'] ?? null,
         ]);
+    }
+
+    public function rules(): array
+    {
+        return [
+            'nisn' => 'unique:siswas,nisn',
+        ];
+    }
+
+    public function customValidationMessages()
+    {
+        return [
+            'nisn.unique' => 'Data ganda ditemukan (NISN :input sudah terdaftar di database).',
+        ];
     }
 
     public function batchSize(): int

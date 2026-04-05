@@ -72,7 +72,7 @@ export default function KelasJurusan({ kelasList }: Props) {
             )}
 
             <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">Total {kelasList.length} kelas terdaftar</p>
+                <p className="text-xs text-slate-500">Total {kelasList.length} kelas terdaftar</p>
                 <button onClick={handleAdd} className="flex items-center gap-2 rounded-lg bg-primary text-white px-4 py-2 text-sm font-semibold hover:bg-primary/90 transition-all shadow-md">
                     <span className="material-symbols-outlined text-sm">add</span>
                     Tambah Kelas
@@ -89,8 +89,8 @@ export default function KelasJurusan({ kelasList }: Props) {
                                         <span className="material-symbols-outlined text-primary text-lg">school</span>
                                     </div>
                                     <div>
-                                        <h4 className="text-sm font-bold text-slate-900">{k.name}</h4>
-                                        {k.description && <p className="text-xs text-slate-500 mt-0.5">{k.description}</p>}
+                                        <h4 className="text-xs font-bold text-slate-900">{k.name}</h4>
+                                        {k.description && <p className="text-[11px] text-slate-500 mt-0.5">{k.description}</p>}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -138,7 +138,7 @@ export default function KelasJurusan({ kelasList }: Props) {
                             </div>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={handleClose} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={handleClose} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleSave} disabled={form.processing} className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors shadow-sm disabled:opacity-50">
                                 {form.processing ? 'Menyimpan...' : 'Simpan'}
                             </button>
@@ -160,7 +160,7 @@ export default function KelasJurusan({ kelasList }: Props) {
                             <p className="text-sm text-slate-500">Data kelas yang dihapus tidak dapat dikembalikan.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={confirmDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus</button>
                         </div>
                     </div>

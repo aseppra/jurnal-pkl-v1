@@ -22,7 +22,7 @@ export default function Profile({ user, siswa, periodePkl }: Props) {
     const pklEnd = siswa?.pkl_end || periodePkl?.end;
 
     return (
-        <StudentLayout title="Profil Akun" subtitle="Informasi Data Diri" showBack studentGender={siswa?.gender}>
+        <StudentLayout title="Profil Akun" subtitle="Informasi Data Diri" showNotificationBell studentGender={siswa?.gender}>
             <Head title="Profil" />
 
             {/* Profile Card */}

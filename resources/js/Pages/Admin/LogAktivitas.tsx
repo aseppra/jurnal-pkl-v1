@@ -16,6 +16,9 @@ interface Props {
         links: any[];
         current_page: number;
         last_page: number;
+        from: number;
+        to: number;
+        total: number;
     };
 }
 
@@ -48,7 +51,7 @@ export default function LogAktivitas({ logs }: Props) {
                                 <tr>
                                     <td colSpan={4} className="px-6 py-16 text-center">
                                         <span className="material-symbols-outlined text-4xl text-slate-300 mb-2 block">history</span>
-                                        <p className="text-sm text-slate-400 font-medium">Belum ada aktivitas tercatat</p>
+                                        <p className="text-xs text-slate-400 font-medium">Belum ada aktivitas tercatat</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -57,16 +60,16 @@ export default function LogAktivitas({ logs }: Props) {
                                         <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{log.created_at}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-medium text-slate-800">{log.user_name}</span>
+                                                <span className="text-xs font-semibold text-slate-800">{log.user_name}</span>
                                                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${roleColor(log.user_role)}`}>{log.user_role}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex items-center gap-1 text-sm font-bold text-slate-800">
+                                            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-800">
                                                 {log.action}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate">{log.description || '-'}</td>
+                                        <td className="px-6 py-4 text-xs text-slate-500 max-w-xs truncate">{log.description || '-'}</td>
                                     </tr>
                                 ))
                             )}
@@ -76,20 +79,15 @@ export default function LogAktivitas({ logs }: Props) {
 
                 {/* Pagination */}
                 {logs.last_page > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
-                        <p className="text-xs text-slate-500">Halaman {logs.current_page} dari {logs.last_page}</p>
+                    <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+                        <span className="text-xs text-slate-500">Menampilkan {logs.from} - {logs.to} dari {logs.total}</span>
                         <div className="flex gap-1">
                             {logs.links.map((link: any, i: number) => (
                                 <button
                                     key={i}
-                                    disabled={!link.url || link.active}
+                                    disabled={!link.url}
                                     onClick={() => link.url && router.get(link.url)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${link.active
-                                        ? 'bg-primary text-white'
-                                        : link.url
-                                            ? 'text-slate-600 hover:bg-slate-100'
-                                            : 'text-slate-300 cursor-not-allowed'
-                                        }`}
+                                    className={`px-3 py-1 rounded text-xs ${link.active ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-200'} disabled:opacity-50`}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             ))}

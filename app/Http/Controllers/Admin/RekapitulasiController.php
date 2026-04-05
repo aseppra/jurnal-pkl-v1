@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Siswa;
 use App\Models\Dudi;
+use App\Models\Pembimbing;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -47,6 +48,7 @@ class RekapitulasiController extends Controller
 
         $totalSiswa = Siswa::count();
         $totalDudi = Dudi::count();
+        $totalPembimbing = Pembimbing::count();
 
         $classes = Siswa::distinct()->pluck('class');
         $companies = Dudi::pluck('name');
@@ -56,6 +58,7 @@ class RekapitulasiController extends Controller
             'stats' => [
                 'totalSiswa' => $totalSiswa,
                 'totalDudi' => $totalDudi,
+                'totalPembimbing' => $totalPembimbing,
             ],
             'classes' => $classes,
             'companies' => $companies,
@@ -67,26 +70,7 @@ class RekapitulasiController extends Controller
     {
         $siswa->load('dudi', 'pembimbing');
 
-        // Determine date range
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
-
-        if (!$startDate || !$endDate) {
-            // Default to Global Settings PKL Period or current month
-            $start = \App\Models\Setting::getValue('pkl_start');
-            $end = \App\Models\Setting::getValue('pkl_end');
-
-            if ($start && $end) {
-                // Determine if we should show the whole period or default to the last 30 days if period is long
-                // To keep it simple, we use the current month by default or the whole period.
-                // Let's default to the whole period.
-                $startDate = $start;
-                $endDate = $end;
-            } else {
-                $startDate = now()->startOfMonth()->toDateString();
-                $endDate = now()->endOfMonth()->toDateString();
-            }
-        }
+        [$startDate, $endDate] = $this->resolveDateRange($request);
 
         $attendances = $siswa->attendances()
             ->whereBetween('date', [$startDate, $endDate])
@@ -107,5 +91,83 @@ class RekapitulasiController extends Controller
                 'end_date' => $endDate,
             ]
         ]);
+    }
+
+    public function exportPresensiPdf(Siswa $siswa, Request $request)
+    {
+        $siswa->load('dudi', 'pembimbing');
+
+        [$startDate, $endDate] = $this->resolveDateRange($request);
+
+        $attendances = $siswa->attendances()
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date', 'asc')
+            ->get();
+
+        $stats = [
+            'hadir' => $attendances->where('status', 'hadir')->count(),
+            'terlambat' => $attendances->where('status', 'terlambat')->count(),
+            'izin' => $attendances->where('status', 'izin')->count(),
+            'sakit' => $attendances->where('status', 'sakit')->count(),
+            'alpha' => $attendances->whereIn('status', ['alpha', 'alpa'])->count(),
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.rekap-presensi', compact('siswa', 'attendances', 'stats', 'startDate', 'endDate'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $filename = 'Rekap_Presensi_' . str_replace(' ', '_', $siswa->name) . '_' . $startDate . '.pdf';
+
+        if ($request->boolean('download')) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
+    }
+
+    public function exportJurnalPdf(Siswa $siswa, Request $request)
+    {
+        $siswa->load('dudi', 'pembimbing');
+
+        [$startDate, $endDate] = $this->resolveDateRange($request);
+
+        $journals = $siswa->journals()
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date', 'asc')
+            ->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.rekap-jurnal', compact('siswa', 'journals', 'startDate', 'endDate'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $filename = 'Rekap_Jurnal_' . str_replace(' ', '_', $siswa->name) . '_' . $startDate . '.pdf';
+
+        if ($request->boolean('download')) {
+            return $pdf->download($filename);
+        }
+
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * Resolve the date range from request or fall back to PKL period / current month.
+     */
+    private function resolveDateRange(Request $request): array
+    {
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        if (!$startDate || !$endDate) {
+            $start = \App\Models\Setting::getValue('pkl_start');
+            $end = \App\Models\Setting::getValue('pkl_end');
+
+            if ($start && $end) {
+                $startDate = $start;
+                $endDate = $end;
+            } else {
+                $startDate = now()->startOfMonth()->toDateString();
+                $endDate = now()->endOfMonth()->toDateString();
+            }
+        }
+
+        return [$startDate, $endDate];
     }
 }

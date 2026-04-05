@@ -11,6 +11,74 @@ interface Props {
     filters: { search?: string };
 }
 
+/* ==================== SEARCHABLE DUDI DROPDOWN ==================== */
+function SearchableDudiDropdown({ dudiList, value, onChange }: { dudiList: DudiItem[]; value: number | ''; onChange: (v: number | '') => void }) {
+    const [open, setOpen] = useState(false);
+    const [filter, setFilter] = useState('');
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const filtered = dudiList.filter(d => d.name.toLowerCase().includes(filter.toLowerCase()));
+    const selected = dudiList.find(d => d.id === value);
+
+    return (
+        <div className="relative" ref={ref}>
+            <button type="button" onClick={() => { setOpen(!open); setFilter(''); }} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-xs text-left flex items-center justify-between bg-white">
+                <span className={value !== '' ? 'text-slate-900' : 'text-slate-500'}>
+                    {selected ? selected.name : '— Belum Ditentukan —'}
+                </span>
+                <span className="material-symbols-outlined text-sm text-slate-400">{open ? 'expand_less' : 'expand_more'}</span>
+            </button>
+            {open && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 z-30 overflow-hidden">
+                    <div className="p-2 border-b border-slate-100 bg-slate-50">
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                            <input
+                                type="text"
+                                value={filter}
+                                onChange={e => setFilter(e.target.value)}
+                                placeholder="Ketik nama DUDI..."
+                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto">
+                        <button
+                            type="button"
+                            onClick={() => { onChange(''); setOpen(false); }}
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-primary/5 transition-colors flex items-center justify-between ${value === '' ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700'}`}
+                        >
+                            <span className="italic">— Belum Ditentukan —</span>
+                            {value === '' && <span className="material-symbols-outlined text-sm text-primary">check</span>}
+                        </button>
+                        {filtered.length === 0 && (
+                            <div className="px-3 py-4 text-xs text-slate-400 text-center">Data DUDI tidak ditemukan</div>
+                        )}
+                        {filtered.map(d => (
+                            <button
+                                key={d.id}
+                                type="button"
+                                onClick={() => { onChange(d.id); setOpen(false); }}
+                                className={`w-full text-left px-3 py-2.5 text-xs hover:bg-primary/5 transition-colors flex items-center justify-between border-t border-slate-50 ${value === d.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700'}`}
+                            >
+                                <span className="truncate pr-2">{d.name}</span>
+                                {value === d.id && <span className="material-symbols-outlined text-sm text-primary shrink-0">check</span>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function DataPembimbing({ pembimbings, dudiList, filters }: Props) {
     const [editing, setEditing] = useState<any>(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -76,12 +144,12 @@ export default function DataPembimbing({ pembimbings, dudiList, filters }: Props
                 <div className="p-4 border-b border-slate-200 bg-slate-50/50">
                     <div className="relative w-full md:w-64">
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                        <input title="Cari pembimbing" className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-primary" placeholder="Cari pembimbing..." value={search} onChange={(e) => handleSearch(e.target.value)} />
+                        <input title="Cari pembimbing" className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:ring-1 focus:ring-primary" placeholder="Cari pembimbing..." value={search} onChange={(e) => handleSearch(e.target.value)} />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left min-w-[800px]">
-                        <thead><tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        <thead><tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                             <th className="px-4 py-4 w-10"><input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAll} className="rounded border-slate-300 text-primary focus:ring-primary/50 cursor-pointer" title="Pilih semua" /></th>
                             <th className="px-6 py-4">NIP</th><th className="px-6 py-4">Nama Pembimbing</th><th className="px-6 py-4">Jurusan</th><th className="px-6 py-4">Tempat PKL</th><th className="px-6 py-4">No. Telepon</th><th className="px-6 py-4 text-right">Aksi</th>
                         </tr></thead>
@@ -89,10 +157,10 @@ export default function DataPembimbing({ pembimbings, dudiList, filters }: Props
                             {pembimbings.data.map((p) => (
                                 <tr key={p.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.includes(p.id) ? 'bg-primary/5' : ''}`}>
                                     <td className="px-4 py-4"><input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleSelect(p.id)} className="rounded border-slate-300 text-primary focus:ring-primary/50 cursor-pointer" title={`Pilih ${p.name}`} /></td>
-                                    <td className="px-6 py-4 text-sm font-mono text-slate-600">{p.nip}</td>
-                                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{p.name}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{p.department}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">
+                                    <td className="px-6 py-4 text-xs font-mono text-slate-600">{p.nip}</td>
+                                    <td className="px-6 py-4 text-xs font-semibold text-slate-900">{p.name}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-500">{p.department}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-600">
                                         {p.dudi ? (
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
                                                 <span className="material-symbols-outlined text-[12px]">business</span>
@@ -102,7 +170,7 @@ export default function DataPembimbing({ pembimbings, dudiList, filters }: Props
                                             <span className="text-xs text-slate-400 italic">Belum ditentukan</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{p.phone}</td>
+                                    <td className="px-6 py-4 text-xs text-slate-600">{p.phone}</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button onClick={() => handleEdit(p)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Edit"><span className="material-symbols-outlined text-sm">edit</span></button>
@@ -144,23 +212,16 @@ export default function DataPembimbing({ pembimbings, dudiList, filters }: Props
                                     <input id="phone" title="No Telepon Pembimbing" type="text" value={editing.phone} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="08xxxxxxxxxx" /></div>
                             </div>
                             <div>
-                                <label htmlFor="dudi_id" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tempat PKL (DUDI)</label>
-                                <select
-                                    id="dudi_id"
-                                    value={editing.dudi_id}
-                                    onChange={(e) => setEditing({ ...editing, dudi_id: e.target.value ? parseInt(e.target.value) : '' })}
-                                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-                                    title="Pilih Tempat PKL"
-                                >
-                                    <option value="">— Belum Ditentukan —</option>
-                                    {dudiList.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Tempat PKL (DUDI)</label>
+                                <SearchableDudiDropdown 
+                                    dudiList={dudiList} 
+                                    value={editing.dudi_id} 
+                                    onChange={(v) => setEditing({ ...editing, dudi_id: v })} 
+                                />
                             </div>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => { setEditing(null); setIsAdding(false); }} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => { setEditing(null); setIsAdding(false); }} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleSave} className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors shadow-sm">Simpan</button>
                         </div>
                     </div>
@@ -177,7 +238,7 @@ export default function DataPembimbing({ pembimbings, dudiList, filters }: Props
                             <p className="text-sm text-slate-500">Data yang dihapus tidak dapat dikembalikan.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setDeletingId(null)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={confirmDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus</button>
                         </div>
                     </div>
@@ -194,7 +255,7 @@ export default function DataPembimbing({ pembimbings, dudiList, filters }: Props
                             <p className="text-sm text-slate-500">Semua data pembimbing yang dipilih akan dihapus permanen.</p>
                         </div>
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
-                            <button onClick={() => setShowBulkDeleteModal(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+                            <button onClick={() => setShowBulkDeleteModal(false)} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">Batal</button>
                             <button onClick={handleBulkDelete} className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Ya, Hapus Semua</button>
                         </div>
                     </div>

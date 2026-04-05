@@ -1,10 +1,13 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useRef, useState } from 'react';
 
 export default function ImportData() {
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { data, setData, post, processing, errors, reset } = useForm<{ file: File | null }>({
+    const { props } = usePage();
+    const flash = (props as any).flash;
+
+    const { data, setData, post, processing, progress, errors, reset } = useForm<{ file: File | null }>({
         file: null,
     });
     
@@ -70,7 +73,7 @@ export default function ImportData() {
                         </div>
                         <a 
                             href={route('admin.import-data.template')}
-                            className="inline-flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-5 py-3 rounded-xl font-semibold transition-colors shrink-0 border border-emerald-200"
+                            className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold transition-colors shrink-0 shadow-sm"
                         >
                             <span className="material-symbols-outlined">download</span>
                             Download Template
@@ -79,6 +82,20 @@ export default function ImportData() {
                 </div>
 
                 <div className="p-6 md:p-8">
+                    {flash?.success && (
+                        <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex gap-2">
+                            <span className="material-symbols-outlined text-[20px] shrink-0">check_circle</span>
+                            <div>{flash.success}</div>
+                        </div>
+                    )}
+                    
+                    {flash?.error && (
+                        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex gap-2">
+                            <span className="material-symbols-outlined text-[20px] shrink-0 whitespace-pre-line">error</span>
+                            <div className="whitespace-pre-line">{flash.error}</div>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Drag and drop zone */}
                         <div 
@@ -111,21 +128,36 @@ export default function ImportData() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center">
-                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <span className="material-symbols-outlined text-3xl">task</span>
-                                    </div>
+                                    {processing && progress ? (
+                                        <div className="relative w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                            <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
+                                                <path className="text-slate-200" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                <path className="text-primary transition-all duration-300" strokeWidth="3.5" strokeDasharray={`${progress.percentage}, 100`} stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            </svg>
+                                            <span className="absolute text-xs font-bold text-primary">{progress.percentage}%</span>
+                                        </div>
+                                    ) : (
+                                        <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <span className="material-symbols-outlined text-3xl">task</span>
+                                        </div>
+                                    )}
                                     <h4 className="text-base font-bold text-slate-800 mb-1">{data.file.name}</h4>
                                     <p className="text-sm text-slate-500 mb-4">{(data.file.size / 1024 / 1024).toFixed(2)} MB</p>
                                     
                                     <button 
                                         type="button"
+                                        disabled={processing}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             reset('file');
                                         }}
-                                        className="text-sm font-semibold text-red-500 hover:text-red-700 px-4 py-2 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                        className={`text-sm font-semibold px-4 py-2 rounded-lg transition-colors border border-transparent ${
+                                            processing 
+                                                ? 'text-slate-400 cursor-not-allowed' 
+                                                : 'text-red-500 hover:text-red-700 hover:bg-red-50 hover:border-red-100'
+                                        }`}
                                     >
-                                        Hapus File
+                                        {processing ? 'Sedang Diproses...' : 'Hapus File'}
                                     </button>
                                 </div>
                             )}
@@ -142,7 +174,7 @@ export default function ImportData() {
                             <button 
                                 type="submit" 
                                 disabled={!data.file || processing}
-                                className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                             >
                                 {processing ? (
                                     <>

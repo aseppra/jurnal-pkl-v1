@@ -22,4 +22,9 @@ class Dudi extends Model
     {
         return $this->siswas()->count();
     }
+
+    public function pembimbings(): HasMany
+    {
+        return $this->hasMany(Pembimbing::class);
+    }
 }

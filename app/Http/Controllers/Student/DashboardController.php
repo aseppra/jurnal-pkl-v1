@@ -14,7 +14,9 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
+        /** @var \App\Models\Siswa|null $siswa */
         $siswa = $user->siswa()->with('dudi')->first();
 
         if (!$siswa) {
@@ -27,18 +29,36 @@ class DashboardController extends Controller
         }
 
         $today = Carbon::today();
+        /** @var \App\Models\Siswa $siswa */
         $todayAttendance = $siswa->attendances()->where('date', $today)->first();
 
-        // PKL progress from global settings
         $pklStartStr = Setting::getValue('pkl_start');
         $pklEndStr = Setting::getValue('pkl_end');
-        $pklStart = $pklStartStr ? Carbon::parse($pklStartStr) : null;
-        $pklEnd = $pklEndStr ? Carbon::parse($pklEndStr) : null;
+        $pklStart = $pklStartStr ? Carbon::parse($pklStartStr)->startOfDay() : null;
+        $pklEnd = $pklEndStr ? Carbon::parse($pklEndStr)->endOfDay() : null;
+        
         $totalDays = $pklStart && $pklEnd ? $pklStart->diffInDays($pklEnd) : 0;
         $elapsedDays = $pklStart ? max($pklStart->diffInDays($today, false), 0) : 0;
         $progress = $totalDays > 0 ? min(round(($elapsedDays / $totalDays) * 100), 100) : 0;
 
+        $isPKLActive = false;
+        $pklStatusMessage = 'Belum dikonfigurasi';
+        
+        if ($pklStart && $pklEnd) {
+            $now = Carbon::now();
+            if ($now->isBefore($pklStart)) {
+                $pklStatusMessage = 'PKL belum dimulai';
+            } elseif ($now->isAfter($pklEnd)) {
+                $pklStatusMessage = 'PKL telah selesai';
+                $progress = 100;
+            } else {
+                $isPKLActive = true;
+                $pklStatusMessage = 'Sedang berlangsung';
+            }
+        }
+
         // Weekly attendance (last 5 weekdays)
+        /** @var \App\Models\Siswa $siswa */
         $weeklyAttendance = $siswa->attendances()
             ->where('date', '>=', $today->copy()->subDays(7))
             ->orderBy('date', 'desc')
@@ -59,6 +79,8 @@ class DashboardController extends Controller
                 'start' => $pklStart?->format('d M Y'),
                 'end' => $pklEnd?->format('d M Y'),
                 'progress' => $progress,
+                'isActive' => $isPKLActive,
+                'statusMessage' => $pklStatusMessage,
             ],
             'todayAttendance' => $todayAttendance,
             'weeklyAttendance' => $weeklyAttendance,
@@ -67,6 +89,9 @@ class DashboardController extends Controller
 
     public function checkIn(Request $request)
     {
+        if ($error = $this->validatePKLPeriod()) return redirect()->back()->with('error', $error);
+
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $siswa = $user->siswa;
         $today = Carbon::today();
@@ -85,6 +110,9 @@ class DashboardController extends Controller
 
     public function checkOut(Request $request)
     {
+        if ($error = $this->validatePKLPeriod()) return redirect()->back()->with('error', $error);
+
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $siswa = $user->siswa;
         $today = Carbon::today();
@@ -101,12 +129,15 @@ class DashboardController extends Controller
 
     public function izin(Request $request)
     {
+        if ($error = $this->validatePKLPeriod()) return redirect()->back()->with('error', $error);
+
         $request->validate([
             'reason' => 'required|in:Sakit,Kepentingan Keluarga,Lain-lain',
             'notes' => 'required|string|max:500',
             'proof' => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048',
         ]);
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $siswa = $user->siswa;
 
@@ -139,5 +170,29 @@ class DashboardController extends Controller
         );
 
         return redirect()->back()->with('success', 'Berhasil mencatat izin absensi.');
+    }
+
+    private function validatePKLPeriod()
+    {
+        $pklStartStr = Setting::getValue('pkl_start');
+        $pklEndStr = Setting::getValue('pkl_end');
+        
+        if (!$pklStartStr || !$pklEndStr) {
+            return 'Jadwal periode PKL belum dikonfigurasi oleh sekolah. Anda belum bisa mengisi presensi.';
+        }
+
+        $pklStart = Carbon::parse($pklStartStr)->startOfDay();
+        $pklEnd = Carbon::parse($pklEndStr)->endOfDay();
+        $now = Carbon::now();
+
+        if ($now->isBefore($pklStart)) {
+            return 'Periode PKL belum dimulai. Anda belum bisa melakukan presensi.';
+        }
+
+        if ($now->isAfter($pklEnd)) {
+            return 'Periode PKL telah berlalu. Masa presensi sudah ditutup penuh.';
+        }
+
+        return null;
     }
 }
