@@ -14,6 +14,8 @@ interface Student {
     statusColor: string;
     reason?: string | null;
     proofFile?: string | null;
+    checkInLat?: number | null;
+    checkInLng?: number | null;
 }
 interface PaginatedStudents { data: Student[]; links: any[]; last_page: number; from: number; to: number; total: number; }
 interface Props { students: PaginatedStudents; allStudents: { id: number; name: string; nisn: string; class: string }[]; classes: string[]; filters: { search?: string; status?: string; class?: string }; }
@@ -138,7 +140,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead><tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                            <th className="px-6 py-4">Nama Siswa</th><th className="px-6 py-4">NISN</th><th className="px-6 py-4">Perusahaan</th><th className="px-6 py-4">Check-in</th><th className="px-6 py-4 text-center">Status</th><th className="px-6 py-4 text-right">Aksi</th>
+                            <th className="px-6 py-4">Nama Siswa</th><th className="px-6 py-4">NISN</th><th className="px-6 py-4">Perusahaan</th><th className="px-6 py-4">Check-in</th><th className="px-6 py-4">Lokasi</th><th className="px-6 py-4 text-center">Status</th><th className="px-6 py-4 text-right">Aksi</th>
                         </tr></thead>
                         <tbody className="divide-y divide-slate-100">
                             {students.data.map((s) => (
@@ -147,6 +149,22 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                                     <td className="px-6 py-4 text-xs text-slate-500">{s.nisn}</td>
                                     <td className="px-6 py-4 text-xs font-medium">{s.company}</td>
                                     <td className="px-6 py-4 text-xs font-mono font-bold text-slate-600">{s.lastCheckin}</td>
+                                    <td className="px-6 py-4">
+                                        {s.checkInLat && s.checkInLng ? (
+                                            <a
+                                                href={`https://maps.google.com/?q=${s.checkInLat},${s.checkInLng}`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 hover:underline transition-colors"
+                                                title={`${s.checkInLat}, ${s.checkInLng}`}
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                                {s.checkInLat.toFixed(4)}, {s.checkInLng.toFixed(4)}
+                                            </a>
+                                        ) : (
+                                            <span className="text-xs text-slate-400">-</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col items-center justify-center gap-1.5 min-h-[48px]">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${s.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-800' : s.statusColor === 'orange' ? 'bg-orange-100 text-orange-800' : s.statusColor === 'red' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'}`}>
@@ -167,7 +185,7 @@ export default function Monitoring({ students, allStudents, classes, filters }: 
                                     </td>
                                 </tr>
                             ))}
-                            {students.data.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 text-sm">Tidak ada data siswa.</td></tr>}
+                            {students.data.length === 0 && <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500 text-sm">Tidak ada data siswa.</td></tr>}
                         </tbody>
                     </table>
                 </div>

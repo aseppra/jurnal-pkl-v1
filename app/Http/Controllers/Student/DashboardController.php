@@ -91,6 +91,11 @@ class DashboardController extends Controller
     {
         if ($error = $this->validatePKLPeriod()) return redirect()->back()->with('error', $error);
 
+        $request->validate([
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+        ]);
+
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $siswa = $user->siswa;
@@ -102,6 +107,8 @@ class DashboardController extends Controller
                 'check_in' => Carbon::now()->format('H:i'),
                 'status' => Carbon::now()->hour >= 8 && Carbon::now()->minute > 15 ? 'terlambat' : 'hadir',
                 'location' => $siswa->dudi?->name,
+                'check_in_lat' => $request->latitude,
+                'check_in_lng' => $request->longitude,
             ]
         );
 
@@ -112,6 +119,11 @@ class DashboardController extends Controller
     {
         if ($error = $this->validatePKLPeriod()) return redirect()->back()->with('error', $error);
 
+        $request->validate([
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+        ]);
+
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $siswa = $user->siswa;
@@ -120,7 +132,11 @@ class DashboardController extends Controller
         $attendance = Attendance::where('siswa_id', $siswa->id)->where('date', $today)->first();
 
         if ($attendance) {
-            $attendance->update(['check_out' => Carbon::now()->format('H:i')]);
+            $attendance->update([
+                'check_out' => Carbon::now()->format('H:i'),
+                'check_out_lat' => $request->latitude,
+                'check_out_lng' => $request->longitude,
+            ]);
             return redirect()->back()->with('success', 'Check-out berhasil pada ' . $attendance->check_out);
         }
 

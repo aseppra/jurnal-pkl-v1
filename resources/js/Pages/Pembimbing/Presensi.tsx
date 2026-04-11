@@ -2,7 +2,7 @@ import PembimbingLayout from '@/Layouts/PembimbingLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-interface Attendance { id: number; date: string; check_in: string | null; check_out: string | null; status: string; location: string | null; reason: string | null; proof_file: string | null; siswa: { name: string; nisn: string; dudi?: { name: string } }; }
+interface Attendance { id: number; date: string; check_in: string | null; check_out: string | null; status: string; location: string | null; reason: string | null; proof_file: string | null; check_in_lat: number | null; check_in_lng: number | null; check_out_lat: number | null; check_out_lng: number | null; siswa: { name: string; nisn: string; dudi?: { name: string } }; }
 interface Props { attendances: { data: Attendance[]; links: any[]; from: number; to: number; total: number; last_page: number }; filters: { search?: string; date?: string } }
 
 export default function Presensi({ attendances, filters }: Props) {
@@ -72,12 +72,36 @@ export default function Presensi({ attendances, filters }: Props) {
                                     </td>
                                     <td className="px-6 py-4 text-center">{getStatusBadge(a.status)}</td>
                                     <td className="px-6 py-4 text-center">
-                                        {a.location ? (
-                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                                                <span className="material-symbols-outlined text-[14px]">location_on</span>
-                                                Ada
-                                            </span>
-                                        ) : <span className="text-xs text-slate-400">-</span>}
+                                        <div className="flex flex-col items-center gap-1">
+                                            {a.check_in_lat && a.check_in_lng ? (
+                                                <a
+                                                    href={`https://maps.google.com/?q=${a.check_in_lat},${a.check_in_lng}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
+                                                    title={`Check-In: ${a.check_in_lat}, ${a.check_in_lng}`}
+                                                >
+                                                    <span className="material-symbols-outlined text-[13px]">login</span>
+                                                    {a.check_in_lat.toFixed(4)}, {a.check_in_lng.toFixed(4)}
+                                                </a>
+                                            ) : (
+                                                <span className="text-[11px] text-slate-400">Masuk: -</span>
+                                            )}
+                                            {a.check_out_lat && a.check_out_lng ? (
+                                                <a
+                                                    href={`https://maps.google.com/?q=${a.check_out_lat},${a.check_out_lng}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 hover:text-orange-700 hover:underline transition-colors"
+                                                    title={`Check-Out: ${a.check_out_lat}, ${a.check_out_lng}`}
+                                                >
+                                                    <span className="material-symbols-outlined text-[13px]">logout</span>
+                                                    {a.check_out_lat.toFixed(4)}, {a.check_out_lng.toFixed(4)}
+                                                </a>
+                                            ) : a.check_out ? (
+                                                <span className="text-[11px] text-slate-400">Pulang: -</span>
+                                            ) : null}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         {a.reason ? (

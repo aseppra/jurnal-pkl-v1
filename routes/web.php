@@ -89,6 +89,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/helpdesk', [HelpdeskController::class, 'index'])->name('admin.helpdesk');
     Route::get('/helpdesk/notifications', [HelpdeskController::class, 'notifications'])->name('admin.helpdesk.notifications');
     Route::patch('/helpdesk/{helpRequest}', [HelpdeskController::class, 'process'])->name('admin.helpdesk.process');
+    Route::delete('/helpdesk/{helpRequest}', [HelpdeskController::class, 'destroy'])->name('admin.helpdesk.destroy');
 
     // Settings (Reset Data)
     Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings');
@@ -137,6 +138,7 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('student.notifications');
     Route::patch('/notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('student.notifications.read');
+    Route::delete('/notifications/read', [NotificationController::class, 'destroyRead'])->name('student.notifications.destroy-read');
 });
 
 Route::post('/helpdesk/request', [\App\Http\Controllers\HelpdeskController::class, 'store'])->name('helpdesk.request');

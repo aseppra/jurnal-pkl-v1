@@ -37,16 +37,40 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
             )}
 
             {/* Filter + Add Button */}
-            <div className="flex items-center justify-between">
-                <div className="flex gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+                {/* Mobile: compact dropdown */}
+                <div className="relative flex-1 min-w-0 sm:hidden">
+                    <select
+                        title="Filter Jurnal"
+                        value={filters.filter || 'all'}
+                        onChange={e => router.get(route('student.journal'), { filter: e.target.value === 'all' ? undefined : e.target.value }, { preserveState: true })}
+                        className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-10 shadow-sm cursor-pointer"
+                    >
+                        <option value="all">Semua Jurnal</option>
+                        <option value="harian">Harian</option>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan">Bulanan</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                </div>
+
+                {/* Desktop: pill tabs */}
+                <div className="hidden sm:flex gap-2 flex-1">
                     {['all', 'harian', 'mingguan', 'bulanan'].map(f => (
                         <button key={f} onClick={() => router.get(route('student.journal'), { filter: f === 'all' ? undefined : f }, { preserveState: true })} className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${(filters.filter || 'all') === f || (!filters.filter && f === 'all') ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                             {f === 'all' ? 'Semua' : f === 'harian' ? 'Harian' : f === 'mingguan' ? 'Mingguan' : 'Bulanan'}
                         </button>
                     ))}
                 </div>
-                <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 transition-all">
-                    <span className="material-symbols-outlined text-sm">{showForm ? 'close' : 'add'}</span>
+
+                {/* Mobile: icon-only button */}
+                <button onClick={() => setShowForm(!showForm)} className="sm:hidden shrink-0 size-10 flex items-center justify-center bg-primary text-white rounded-xl shadow-md hover:bg-primary/90 transition-all">
+                    <span className="material-symbols-outlined text-[20px]">{showForm ? 'close' : 'add'}</span>
+                </button>
+
+                {/* Desktop: full button */}
+                <button onClick={() => setShowForm(!showForm)} className="hidden sm:flex shrink-0 items-center gap-1.5 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all">
+                    <span className="material-symbols-outlined text-[18px]">{showForm ? 'close' : 'add'}</span>
                     {showForm ? 'Tutup' : 'Tulis Jurnal'}
                 </button>
             </div>

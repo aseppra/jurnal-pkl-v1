@@ -47,6 +47,8 @@ class MonitoringController extends Controller
             'status' => ucfirst($s->attendances->first()?->status ?? 'belum_masuk'),
             'reason' => $s->attendances->first()?->reason,
             'proofFile' => $s->attendances->first()?->proof_file,
+            'checkInLat' => $s->attendances->first()?->check_in_lat,
+            'checkInLng' => $s->attendances->first()?->check_in_lng,
             'statusColor' => match($s->attendances->first()?->status) {
                 'hadir' => 'emerald',
                 'terlambat' => 'orange',

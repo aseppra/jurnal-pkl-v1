@@ -4,11 +4,15 @@ import React, { useState } from 'react';
 
 interface Attendance { id: number; date: string; check_in: string | null; check_out: string | null; status: string; notes: string | null; reason?: string | null; }
 interface Journal { id: number; date: string; activity: string; target: string; achievement: string; }
-interface Props { attendances: Attendance[]; journals: Journal[]; filters: { start_date: string; end_date: string; }; }
+interface Props { attendances: Attendance[]; journals: Journal[]; filters: { start_date: string; end_date: string; }; pklPeriod: { start: string; end: string; }; }
 
-export default function Rekapitulasi({ attendances, journals, filters }: Props) {
+export default function Rekapitulasi({ attendances, journals, filters, pklPeriod }: Props) {
     const [dateRange, setDateRange] = useState({ start: filters.start_date || '', end: filters.end_date || '' });
     const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal'>('presensi');
+
+    React.useEffect(() => {
+        setDateRange({ start: filters.start_date || '', end: filters.end_date || '' });
+    }, [filters.start_date, filters.end_date]);
 
     const applyFilter = (start: string, end: string) => {
         router.get(route('student.rekapitulasi'), { start_date: start, end_date: end }, { preserveState: true, replace: true });
@@ -45,6 +49,28 @@ export default function Rekapitulasi({ attendances, journals, filters }: Props) 
         applyFilter(dateRange.start, dateRange.end);
     };
 
+    const activePreset = React.useMemo(() => {
+        if (!dateRange.start && !dateRange.end) return 'periode';
+        if (dateRange.start === pklPeriod.start && dateRange.end === pklPeriod.end) return 'periode';
+        
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        if (dateRange.end !== todayStr) return 'custom';
+
+        const pastWeek = new Date(today);
+        pastWeek.setDate(today.getDate() - 7);
+        const weekStr = `${pastWeek.getFullYear()}-${String(pastWeek.getMonth() + 1).padStart(2, '0')}-${String(pastWeek.getDate()).padStart(2, '0')}`;
+        if (dateRange.start === weekStr) return '1_minggu';
+
+        const pastMonth = new Date(today);
+        pastMonth.setMonth(today.getMonth() - 1);
+        const monthStr = `${pastMonth.getFullYear()}-${String(pastMonth.getMonth() + 1).padStart(2, '0')}-${String(pastMonth.getDate()).padStart(2, '0')}`;
+        if (dateRange.start === monthStr) return '1_bulan';
+
+        return 'custom';
+    }, [dateRange]);
+
     const getStatusBadge = (status: string) => {
         const map: Record<string, string> = {
             hadir: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -66,9 +92,9 @@ export default function Rekapitulasi({ attendances, journals, filters }: Props) 
                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Filter Periode</h3>
                     <div className="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
-                        <button onClick={() => handlePresetFilter('1_minggu')} className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 transition-colors">1 Minggu Terakhir</button>
-                        <button onClick={() => handlePresetFilter('1_bulan')} className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 transition-colors">1 Bulan Terakhir</button>
-                        <button onClick={() => handlePresetFilter('periode')} className="shrink-0 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 text-xs font-bold text-primary transition-colors">Periode PKL Aktif</button>
+                        <button onClick={() => handlePresetFilter('1_minggu')} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs transition-colors ${activePreset === '1_minggu' ? 'bg-primary/10 hover:bg-primary/20 border border-primary/20 font-bold text-primary' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200 font-semibold text-slate-600'}`}>1 Minggu Terakhir</button>
+                        <button onClick={() => handlePresetFilter('1_bulan')} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs transition-colors ${activePreset === '1_bulan' ? 'bg-primary/10 hover:bg-primary/20 border border-primary/20 font-bold text-primary' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200 font-semibold text-slate-600'}`}>1 Bulan Terakhir</button>
+                        <button onClick={() => handlePresetFilter('periode')} className={`shrink-0 px-3 py-1.5 rounded-lg text-xs transition-colors ${activePreset === 'periode' ? 'bg-primary/10 hover:bg-primary/20 border border-primary/20 font-bold text-primary' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200 font-semibold text-slate-600'}`}>Periode PKL Aktif</button>
                     </div>
                 </div>
 

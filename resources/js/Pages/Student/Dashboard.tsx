@@ -15,6 +15,7 @@ export default function Dashboard({ user, siswa, pklInfo, todayAttendance, weekl
     const { props } = usePage();
     const flash = (props as any).flash;
     const [showIzinModal, setShowIzinModal] = useState(false);
+    const [geoLoading, setGeoLoading] = useState<'checkin' | 'checkout' | null>(null);
     const { data: izinData, setData: setIzinData, post: postIzin, processing: processingIzin, errors: izinErrors, reset: resetIzin } = useForm<{
         reason: string;
         notes: string;
@@ -25,8 +26,29 @@ export default function Dashboard({ user, siswa, pklInfo, todayAttendance, weekl
         proof: null
     });
 
-    const handleCheckIn = () => router.post(route('student.checkin'));
-    const handleCheckOut = () => router.post(route('student.checkout'));
+    /** Helper: get GPS position then POST with lat/lng, or POST without if GPS fails/denied */
+    const postWithGeolocation = (routeName: string, loadingKey: 'checkin' | 'checkout') => {
+        setGeoLoading(loadingKey);
+
+        const doPost = (latitude?: number, longitude?: number) => {
+            router.post(route(routeName), { latitude, longitude } as any, {
+                onFinish: () => setGeoLoading(null),
+            });
+        };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => doPost(pos.coords.latitude, pos.coords.longitude),
+                () => doPost(), // GPS denied or error — proceed without coordinates
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        } else {
+            doPost(); // Browser doesn't support geolocation
+        }
+    };
+
+    const handleCheckIn = () => postWithGeolocation('student.checkin', 'checkin');
+    const handleCheckOut = () => postWithGeolocation('student.checkout', 'checkout');
 
     const handleIzinSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -107,28 +129,36 @@ export default function Dashboard({ user, siswa, pklInfo, todayAttendance, weekl
                     <div className="grid grid-cols-2 gap-4">
                         <button
                             onClick={handleCheckIn}
-                            disabled={!!todayAttendance?.check_in}
-                            className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${todayAttendance?.check_in ? 'border-emerald-200 bg-emerald-50 cursor-default' : 'border-dashed border-slate-300 bg-white hover:border-primary hover:bg-primary/5'}`}
+                            disabled={!!todayAttendance?.check_in || geoLoading === 'checkin'}
+                            className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${todayAttendance?.check_in ? 'border-emerald-200 bg-emerald-50 cursor-default' : geoLoading === 'checkin' ? 'border-primary/30 bg-primary/5 cursor-wait' : 'border-dashed border-slate-300 bg-white hover:border-primary hover:bg-primary/5'}`}
                         >
-                            <span className={`material-symbols-outlined text-3xl ${todayAttendance?.check_in ? 'text-emerald-500' : 'text-slate-400'}`}>
-                                {todayAttendance?.check_in ? 'check_circle' : 'login'}
-                            </span>
+                            {geoLoading === 'checkin' ? (
+                                <div className="size-8 border-[3px] border-primary/30 border-t-primary rounded-full animate-spin" />
+                            ) : (
+                                <span className={`material-symbols-outlined text-3xl ${todayAttendance?.check_in ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                    {todayAttendance?.check_in ? 'check_circle' : 'login'}
+                                </span>
+                            )}
                             <div className="text-center">
-                                <p className="text-sm font-bold text-slate-900">{todayAttendance?.check_in ? `Masuk ${todayAttendance.check_in}` : 'Check In'}</p>
-                                <p className="text-[10px] text-slate-500 mt-1 uppercase">{todayAttendance?.check_in ? 'Tercatat' : 'Tap untuk masuk'}</p>
+                                <p className="text-sm font-bold text-slate-900">{geoLoading === 'checkin' ? 'Mengambil lokasi...' : todayAttendance?.check_in ? `Masuk ${todayAttendance.check_in}` : 'Check In'}</p>
+                                <p className="text-[10px] text-slate-500 mt-1 uppercase">{geoLoading === 'checkin' ? 'Mohon tunggu' : todayAttendance?.check_in ? 'Tercatat' : 'Tap untuk masuk'}</p>
                             </div>
                         </button>
                         <button
                             onClick={handleCheckOut}
-                            disabled={!todayAttendance?.check_in || !!todayAttendance?.check_out}
-                            className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${todayAttendance?.check_out ? 'border-blue-200 bg-blue-50 cursor-default' : !todayAttendance?.check_in ? 'border-dashed border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed' : 'border-dashed border-slate-300 bg-white hover:border-blue-500 hover:bg-blue-50'}`}
+                            disabled={!todayAttendance?.check_in || !!todayAttendance?.check_out || geoLoading === 'checkout'}
+                            className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${todayAttendance?.check_out ? 'border-blue-200 bg-blue-50 cursor-default' : geoLoading === 'checkout' ? 'border-blue-300 bg-blue-50 cursor-wait' : !todayAttendance?.check_in ? 'border-dashed border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed' : 'border-dashed border-slate-300 bg-white hover:border-blue-500 hover:bg-blue-50'}`}
                         >
-                            <span className={`material-symbols-outlined text-3xl ${todayAttendance?.check_out ? 'text-blue-500' : 'text-slate-400'}`}>
-                                {todayAttendance?.check_out ? 'check_circle' : 'logout'}
-                            </span>
+                            {geoLoading === 'checkout' ? (
+                                <div className="size-8 border-[3px] border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+                            ) : (
+                                <span className={`material-symbols-outlined text-3xl ${todayAttendance?.check_out ? 'text-blue-500' : 'text-slate-400'}`}>
+                                    {todayAttendance?.check_out ? 'check_circle' : 'logout'}
+                                </span>
+                            )}
                             <div className="text-center">
-                                <p className="text-sm font-bold text-slate-900">{todayAttendance?.check_out ? `Keluar ${todayAttendance.check_out}` : 'Check Out'}</p>
-                                <p className="text-[10px] text-slate-500 mt-1 uppercase">{todayAttendance?.check_out ? 'Tercatat' : 'Tap untuk keluar'}</p>
+                                <p className="text-sm font-bold text-slate-900">{geoLoading === 'checkout' ? 'Mengambil lokasi...' : todayAttendance?.check_out ? `Keluar ${todayAttendance.check_out}` : 'Check Out'}</p>
+                                <p className="text-[10px] text-slate-500 mt-1 uppercase">{geoLoading === 'checkout' ? 'Mohon tunggu' : todayAttendance?.check_out ? 'Tercatat' : 'Tap untuk keluar'}</p>
                             </div>
                         </button>
                     </div>

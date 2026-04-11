@@ -43,4 +43,17 @@ class NotificationController extends Controller
 
         return redirect()->back();
     }
+
+    public function destroyRead()
+    {
+        $deleted = Notification::where('user_id', Auth::id())
+            ->where('is_read', true)
+            ->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'deleted' => $deleted]);
+        }
+
+        return redirect()->back()->with('success', "{$deleted} pesan berhasil dihapus.");
+    }
 }

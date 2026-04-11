@@ -2,6 +2,7 @@ import { Link, usePage, router } from '@inertiajs/react';
 import React, { PropsWithChildren, useState, useEffect } from 'react';
 import Portal from '@/Components/Portal';
 import axios from 'axios';
+import NotificationPushModal from '@/Components/NotificationPushModal';
 
 interface NotificationItem { id: number; title: string; message: string; type: string; isNew: boolean; time: string; }
 
@@ -58,7 +59,7 @@ function BottomNav({ unreadCount }: { unreadCount: number }) {
 
                                 {/* Icon Container */}
                                 <div className={`flex items-center justify-center w-12 h-8 rounded-[14px] transition-all duration-300 ${isActive ? 'bg-primary/10' : 'bg-transparent hover:bg-slate-100/50'}`}>
-                                    <span className={`material-symbols-outlined text-[24px] ${isActive ? 'fill-[1]' : ''}`} style={isActive ? {fontVariationSettings: "'FILL' 1"} : {}}>
+                                    <span className={`material-symbols-outlined text-[24px] ${isActive ? 'fill-[1]' : ''}`} style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}>
                                         {item.icon}
                                     </span>
                                 </div>
@@ -87,8 +88,45 @@ export default function StudentLayout({ children, title, subtitle, showBack, sho
     const { url, props } = usePage();
     const user = (props as any).auth?.user;
 
-    const initialUnreadCount = (props as any).unreadNotificationCount || 0;
-    const [localUnreadCount, setLocalUnreadCount] = useState<number>(initialUnreadCount);
+    // --- On-Navigation Check Push Notification ---
+    // ✅ ROOT FIX: Use lazy useState initializer — runs synchronously on first
+    // render, before any paint. When Inertia navigates, StudentLayout remounts
+    // fresh, so this initializer runs again with the latest `latestNotification`.
+    const latestNotification = (props as any).latestUnreadNotification as {
+        id: number; title: string; message: string; type: string; created_at: string;
+    } | null;
+
+    const [isPushModalOpen, setIsPushModalOpen] = useState<boolean>(() => {
+        if (!latestNotification) return false;
+        try {
+            const dismissedRaw = localStorage.getItem('dismissed_push_notifications');
+            const dismissed: number[] = dismissedRaw ? JSON.parse(dismissedRaw) : [];
+            return !dismissed.includes(latestNotification.id);
+        } catch {
+            return false;
+        }
+    });
+
+    const handleClosePushModal = () => {
+        if (latestNotification) {
+            try {
+                const dismissedRaw = localStorage.getItem('dismissed_push_notifications');
+                const dismissed: number[] = dismissedRaw ? JSON.parse(dismissedRaw) : [];
+                if (!dismissed.includes(latestNotification.id)) {
+                    dismissed.push(latestNotification.id);
+                    localStorage.setItem('dismissed_push_notifications', JSON.stringify(dismissed));
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        setIsPushModalOpen(false);
+    };
+    // ---------------------------------------------
+
+    const [localUnreadCount, setLocalUnreadCount] = useState<number>(
+        (props as any).unreadNotificationCount || 0
+    );
 
     useEffect(() => {
         setLocalUnreadCount((props as any).unreadNotificationCount || 0);
@@ -121,6 +159,16 @@ export default function StudentLayout({ children, title, subtitle, showBack, sho
             await axios.patch(route('student.notifications.read', id), {}, { headers: { Accept: 'application/json' } });
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, isNew: false } : n));
             setLocalUnreadCount((prev: number) => Math.max(0, prev - 1));
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleClearRead = async () => {
+        try {
+            await axios.delete(route('student.notifications.destroy-read'), { headers: { Accept: 'application/json' } });
+            // Remove notifications that are not new from the state
+            setNotifications(prev => prev.filter(n => n.isNew));
         } catch (error) {
             console.error(error);
         }
@@ -208,20 +256,32 @@ export default function StudentLayout({ children, title, subtitle, showBack, sho
                 <div className={`fixed inset-0 z-[99999] transition-opacity duration-300 ${isNotificationOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                     {/* Backdrop */}
                     <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsNotificationOpen(false)} />
-                    
+
                     {/* Slider Panel */}
                     <div className={`absolute top-0 right-0 h-full w-full max-w-sm bg-slate-50 shadow-2xl transition-transform duration-300 flex flex-col ${isNotificationOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shrink-0">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-800">Notifikasi</h2>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-slate-800">Notifikasi</h2>
+                                    {notifications.length > 10 && (
+                                        <button 
+                                            onClick={handleClearRead}
+                                            className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-red-200 transition-colors"
+                                            title="Hapus pesan yang sudah dibaca"
+                                        >
+                                            <span className="material-symbols-outlined text-[12px]">delete</span>
+                                            Hapus Semua
+                                        </button>
+                                    )}
+                                </div>
                                 <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Pemberitahu Terbaru</p>
                             </div>
                             <button onClick={() => setIsNotificationOpen(false)} className="size-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-colors">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
-                        
+
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
                             {isLoadingNotifications ? (
@@ -268,6 +328,12 @@ export default function StudentLayout({ children, title, subtitle, showBack, sho
                     </div>
                 </div>
             </Portal>
+
+            <NotificationPushModal 
+                isOpen={isPushModalOpen} 
+                onClose={handleClosePushModal} 
+                notification={latestNotification} 
+            />
         </div>
     );
 }

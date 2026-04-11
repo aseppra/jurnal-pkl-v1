@@ -42,6 +42,9 @@ class HandleInertiaRequests extends Middleware
             'unreadNotificationCount' => fn() => $request->user()
                 ? Notification::where('user_id', $request->user()->id)->where('is_read', false)->count()
                 : 0,
+            'latestUnreadNotification' => fn() => $request->user()
+                ? Notification::where('user_id', $request->user()->id)->where('is_read', false)->latest()->first()
+                : null,
             'helpdeskPendingCount' => fn() => $request->user() && $request->user()->role === 'admin'
                 ? \App\Models\HelpRequest::where('status', 'pending')->count()
                 : 0,

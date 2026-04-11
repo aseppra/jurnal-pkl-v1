@@ -33,6 +33,10 @@ class RekapitulasiController extends Controller
             'filters' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
+            ],
+            'pklPeriod' => [
+                'start' => \App\Models\Setting::getValue('pkl_start'),
+                'end' => \App\Models\Setting::getValue('pkl_end'),
             ]
         ]);
     }

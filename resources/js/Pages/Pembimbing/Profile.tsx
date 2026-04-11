@@ -139,7 +139,7 @@ export default function Profile({ pembimbing, user }: Props) {
                                 <span className="material-symbols-outlined text-red-500 text-xl">logout</span>
                             </div>
                             <div className="text-left">
-                                <p className="text-sm font-bold text-red-700">Keluar dari Akun</p>
+                                <p className="text-sm font-bold text-red-700">Keluar</p>
                                 <p className="text-xs text-red-400">Sesi login akan diakhiri</p>
                             </div>
                         </div>

@@ -88,4 +88,12 @@ class HelpdeskController extends Controller
         ActivityLog::log('Proses Helpdesk', "Memproses tiket helpdesk dari {$helpRequest->name}.");
         return redirect()->back()->with('success', 'Permintaan berhasil diproses.');
     }
+
+    public function destroy(HelpRequest $helpRequest)
+    {
+        $name = $helpRequest->name;
+        $helpRequest->delete();
+        ActivityLog::log('Hapus Helpdesk', "Menghapus tiket helpdesk dari {$name}.");
+        return redirect()->back()->with('success', 'Permintaan berhasil dihapus.');
+    }
 }
