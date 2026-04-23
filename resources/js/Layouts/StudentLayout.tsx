@@ -217,7 +217,7 @@ export default function StudentLayout({ children, title, subtitle, showBack, sho
                 </div>
             </aside>
 
-            <div className="flex-1 flex flex-col pb-24 md:pb-0">
+            <div className="flex-1 flex flex-col pb-24 md:pb-0 min-w-0 overflow-x-hidden sm:overflow-x-visible">
                 {/* Header */}
                 <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-6 py-4">
                     <div className="flex items-center justify-between max-w-5xl mx-auto w-full">

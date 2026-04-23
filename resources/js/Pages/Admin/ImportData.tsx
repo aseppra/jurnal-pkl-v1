@@ -68,7 +68,7 @@ export default function ImportData() {
                         <div>
                             <h3 className="text-lg font-bold text-slate-800 mb-1">Import Data dari Excel</h3>
                             <p className="text-sm text-slate-500 max-w-xl">
-                                Gunakan fitur ini untuk memasukkan banyak data sekaligus. Download template terlebih dahulu, isi data sesuai format yang disediakan pada masing-masing sheet, lalu upload kembali file tersebut ke sini.
+                                Download template terlebih dahulu, isi data sesuai format yang disediakan pada masing-masing sheet, lalu upload kembali file tersebut ke sini.
                             </p>
                         </div>
                         <a
@@ -76,7 +76,7 @@ export default function ImportData() {
                             className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold transition-colors shrink-0 shadow-sm"
                         >
                             <span className="material-symbols-outlined">download</span>
-                            Download Template
+                            Template
                         </a>
                     </div>
                 </div>
@@ -183,7 +183,7 @@ export default function ImportData() {
                                 ) : (
                                     <>
                                         <span className="material-symbols-outlined text-[20px]">cloud_upload</span>
-                                        Mulai Import
+                                        Import
                                     </>
                                 )}
                             </button>
@@ -200,9 +200,9 @@ export default function ImportData() {
                     <ul className="text-sm text-slate-600 space-y-2 list-disc pl-5">
                         <li>Data yang diimport akan ditambahkan ke database.</li>
                         <li>Pastikan nama sheet tidak diubah (Siswa, DUDI, Pembimbing).</li>
-                        <li>Sistem otomatis melewati data jika <b>NISN</b> (siswa), <b>Nama DUDI</b>, atau <b>NIP/NUPTK</b> (pembimbing) sudah ada.</li>
-                        <li>Akun login untuk Pembimbing baru akan otomatis dibuat dengan password default <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono text-slate-800">12345678</code>.</li>
-                        <li>Untuk data <b>Siswa</b>, info akun hanya diproses datanya saja. Silakan buat akun login (username/password) menggunakan tombol <b>Generate Semua Akun</b> di menu Data Siswa setelah import selesai.</li>
+                        <li>Sistem otomatis melewati data jika <b>NISN</b> (siswa), <b>Nama DUDI</b>, atau <b>NIP</b> (pembimbing) sudah ada.</li>
+                        <li>Akun login <b>Pembimbing</b> akan digenerate secara otomatis dengan password default <b>NIP</b>.</li>
+                        <li>Akun Login <b>Siswa</b> akan digenerate secara otomatis dengan password default <b>NISN</b>.</li>
                     </ul>
                 </div>
             </div>

@@ -1,7 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import Portal from '@/Components/Portal';
 import { Head, router, usePage, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface AdminUser {
     id: number;
@@ -23,6 +23,145 @@ interface Props {
         helpRequest: number;
     };
     admins: AdminUser[];
+}
+
+/* ===== Tab: Backup & Restore ===== */
+function BackupRestoreTab() {
+    const { props } = usePage();
+    const flash = (props as any).flash;
+    const [restoreFile, setRestoreFile] = useState<File | null>(null);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [processing, setProcessing] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    const handleRestore = () => {
+        if (!restoreFile) return;
+        setProcessing(true);
+        const fd = new FormData();
+        fd.append('backup_file', restoreFile);
+        router.post(route('admin.settings.restore'), fd, {
+            forceFormData: true,
+            onFinish: () => { setProcessing(false); setShowConfirm(false); setRestoreFile(null); },
+        });
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault(); setDragOver(false);
+        const f = e.dataTransfer.files[0];
+        if (f && f.name.endsWith('.zip')) setRestoreFile(f);
+    };
+
+    return (
+        <>
+            {/* Info Banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
+                <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
+                    <div>
+                        <h3 className="font-bold text-blue-800 text-sm">Backup & Restore Data</h3>
+                        <p className="text-blue-700 text-xs mt-1">Silahkan lakukan backup data sebelum melakukan reset data. jika terjadi kesalahan pada data, silahkan kembalikan data dari file backup.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Backup Card */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
+                    <div className="p-5">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="size-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+                                <span className="material-symbols-outlined">cloud_download</span>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-900 text-sm">Backup Data</h4>
+                                <p className="text-xs text-slate-500">Unduh file backup (.zip)</p>
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-4 leading-relaxed">Mengunduh seluruh data siswa, DUDI, pembimbing, jurnal, presensi, dan pengaturan ke dalam file ZIP.</p>
+                        <a
+                            href={route('admin.settings.backup')}
+                            className="w-full py-2 rounded-xl border border-emerald-200 text-emerald-600 text-xs font-bold hover:bg-emerald-50 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            Download Backup
+                        </a>
+                    </div>
+                </div>
+
+                {/* Restore Card */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="h-1.5 bg-gradient-to-r from-amber-500 to-amber-600" />
+                    <div className="p-5">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="size-10 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
+                                <span className="material-symbols-outlined">cloud_upload</span>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-900 text-sm">Restore Data</h4>
+                                <p className="text-xs text-slate-500">Upload file backup (.zip)</p>
+                            </div>
+                        </div>
+
+                        {/* Dropzone */}
+                        <div
+                            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={handleDrop}
+                            onClick={() => fileRef.current?.click()}
+                            className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors mb-4 ${dragOver ? 'border-amber-400 bg-amber-50' :
+                                restoreFile ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                }`}
+                        >
+                            <input ref={fileRef} type="file" accept=".zip" className="hidden" onChange={e => setRestoreFile(e.target.files?.[0] || null)} />
+                            <span className={`material-symbols-outlined text-3xl mb-1 block ${restoreFile ? 'text-emerald-500' : 'text-slate-300'}`}>
+                                {restoreFile ? 'task_alt' : 'upload_file'}
+                            </span>
+                            {restoreFile
+                                ? <p className="text-xs font-bold text-emerald-700">{restoreFile.name}</p>
+                                : <><p className="text-xs font-semibold text-slate-600">Klik atau drag & drop file .zip</p><p className="text-[10px] text-slate-400 mt-1">Maks. 50 MB</p></>}
+                        </div>
+
+                        <button
+                            onClick={() => setShowConfirm(true)}
+                            disabled={!restoreFile}
+                            className="w-full py-2 rounded-xl border border-amber-200 text-amber-600 text-xs font-bold hover:bg-amber-50 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <span className="material-symbols-outlined text-sm">restore</span>
+                            Restore Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            {/* Confirm Modal */}
+            {showConfirm && (
+                <Portal>
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden">
+                            <div className="p-6 text-center">
+                                <div className="size-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+                                    <span className="material-symbols-outlined text-amber-600 text-3xl">warning</span>
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-2">Konfirmasi Restore</h3>
+                                <p className="text-sm text-slate-600 mb-1">Seluruh data saat ini akan <strong>dihapus</strong> dan diganti dengan data dari file backup.</p>
+                                <p className="text-xs text-red-500 font-semibold">Tindakan ini tidak dapat dibatalkan!</p>
+                                <p className="text-xs text-slate-400 mt-2 truncate">{restoreFile?.name}</p>
+                            </div>
+                            <div className="flex border-t border-slate-100 divide-x divide-slate-100">
+                                <button onClick={() => setShowConfirm(false)} disabled={processing} className="flex-1 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+                                <button onClick={handleRestore} disabled={processing} className="flex-1 py-3.5 text-sm font-bold text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-60">
+                                    {processing ? 'Memulihkan...' : 'Ya, Pulihkan'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Portal>
+            )}
+        </>
+    );
 }
 
 /* ===== Tab: Reset Data ===== */
@@ -236,7 +375,7 @@ function KelolaAdminTab({ admins }: { admins: AdminUser[] }) {
                     <span className="material-symbols-outlined text-indigo-500 mt-0.5">admin_panel_settings</span>
                     <div>
                         <h3 className="font-bold text-indigo-800 text-sm">Manajemen Akun Admin</h3>
-                        <p className="text-indigo-600 text-xs mt-1">Kelola akun administrator sistem. Admin dapat menambahkan admin baru dan memperbarui informasi akun admin yang ada.</p>
+                        <p className="text-indigo-600 text-xs mt-1">Kelola akun administrator sistem. hati-hati jika ingin mengubah akun admin.</p>
                     </div>
                 </div>
             </div>
@@ -520,6 +659,7 @@ function KelolaAdminTab({ admins }: { admins: AdminUser[] }) {
 
 /* ===== Main Settings Page ===== */
 const tabs = [
+    { key: 'backup', label: 'Backup & Restore', icon: 'cloud_sync' },
     { key: 'reset', label: 'Reset Data', icon: 'restart_alt' },
     { key: 'admin', label: 'Kelola Admin', icon: 'admin_panel_settings' },
 ] as const;
@@ -529,10 +669,10 @@ type TabKey = typeof tabs[number]['key'];
 export default function Settings({ counts, admins }: Props) {
     const { props } = usePage();
     const flash = (props as any).flash;
-    const [activeTab, setActiveTab] = useState<TabKey>('reset');
+    const [activeTab, setActiveTab] = useState<TabKey>('backup');
 
     return (
-        <AdminLayout title="Pengaturan" subtitle="Kelola dan reset data sistem">
+        <AdminLayout title="Pengaturan" subtitle="Backup, Restore, & Reset Data">
             <Head title="Pengaturan" />
 
             {flash?.success && (
@@ -543,19 +683,18 @@ export default function Settings({ counts, admins }: Props) {
             )}
 
             {/* Tab Navigation */}
-            <div className="mb-6">
-                <div className="flex bg-white rounded-2xl border border-slate-200 p-1.5 shadow-sm w-fit">
+            <div className="mb-6 border-b border-slate-200">
+                <div className="flex gap-1">
                     {tabs.map((tab) => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-                                activeTab === tab.key
-                                    ? 'bg-primary text-white shadow-lg shadow-blue-200'
-                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                            }`}
+                            className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab.key
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                                }`}
                         >
-                            <span className="material-symbols-outlined text-lg">{tab.icon}</span>
+                            <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
                             {tab.label}
                         </button>
                     ))}
@@ -563,6 +702,7 @@ export default function Settings({ counts, admins }: Props) {
             </div>
 
             {/* Tab Content */}
+            {activeTab === 'backup' && <BackupRestoreTab />}
             {activeTab === 'reset' && <ResetDataTab counts={counts} />}
             {activeTab === 'admin' && <KelolaAdminTab admins={admins} />}
         </AdminLayout>

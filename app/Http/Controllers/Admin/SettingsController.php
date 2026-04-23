@@ -8,15 +8,18 @@ use App\Models\Attendance;
 use App\Models\Dudi;
 use App\Models\HelpRequest;
 use App\Models\Journal;
+use App\Models\Kelas;
 use App\Models\Notification;
 use App\Models\Pembimbing;
 use App\Models\Setting;
 use App\Models\Siswa;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use ZipArchive;
 
 class SettingsController extends Controller
 {
@@ -174,4 +177,133 @@ class SettingsController extends Controller
 
         return redirect()->back()->with('success', 'Berhasil mereset seluruh data sistem.');
     }
+
+    /* ===== BACKUP ===== */
+    public function backup()
+    {
+        $timestamp = now()->format('Ymd_His');
+        $filename  = "backup_jurnal_pkl_{$timestamp}.zip";
+        $tmpPath   = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $filename;
+
+        // Tables to export (order respects FK constraints)
+        $tables = [
+            'kelas'          => DB::table('kelas')->get(),
+            'dudis'          => DB::table('dudis')->get(),
+            'users'          => DB::table('users')->get(),
+            'siswas'         => DB::table('siswas')->get(),
+            'pembimbings'    => DB::table('pembimbings')->get(),
+            'journals'       => DB::table('journals')->get(),
+            'attendances'    => DB::table('attendances')->get(),
+            'notifications'  => DB::table('notifications')->get(),
+            'help_requests'  => DB::table('help_requests')->get(),
+            'settings'       => DB::table('settings')->get(),
+            'activity_logs'  => DB::table('activity_logs')->get(),
+        ];
+
+        $zip = new ZipArchive();
+        if ($zip->open($tmpPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return back()->with('error', 'Gagal membuat file backup.');
+        }
+
+        foreach ($tables as $table => $rows) {
+            $zip->addFromString("{$table}.json", json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        }
+
+        // Add a manifest with metadata
+        $manifest = [
+            'created_at'  => now()->toDateTimeString(),
+            'app'         => 'Jurnal PKL',
+            'tables'      => array_keys($tables),
+            'row_counts'  => array_map(fn($rows) => count($rows), $tables),
+        ];
+        $zip->addFromString('manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $zip->close();
+
+        ActivityLog::log('Backup Data', "Membuat backup data sistem: {$filename}");
+
+        return response()->download($tmpPath, $filename, [
+            'Content-Type' => 'application/zip',
+        ])->deleteFileAfterSend(true);
+    }
+
+    /* ===== RESTORE ===== */
+    public function restore(Request $request)
+    {
+        $request->validate([
+            'backup_file' => 'required|file|mimes:zip|max:51200', // max 50MB
+        ]);
+
+        $zip = new ZipArchive();
+        $uploadedPath = $request->file('backup_file')->getPathname();
+
+        if ($zip->open($uploadedPath) !== true) {
+            return back()->with('error', 'File backup tidak valid atau rusak.');
+        }
+
+        // Validate manifest
+        $manifestJson = $zip->getFromName('manifest.json');
+        if (!$manifestJson) {
+            $zip->close();
+            return back()->with('error', 'File backup tidak valid: manifest tidak ditemukan.');
+        }
+        $manifest = json_decode($manifestJson, true);
+        if (!isset($manifest['tables'])) {
+            $zip->close();
+            return back()->with('error', 'Format file backup tidak dikenali.');
+        }
+
+        // Read all table data from ZIP first
+        $tableData = [];
+        foreach ($manifest['tables'] as $table) {
+            $json = $zip->getFromName("{$table}.json");
+            if ($json === false) {
+                $zip->close();
+                return back()->with('error', "File backup tidak lengkap: tabel '{$table}' tidak ditemukan.");
+            }
+            $tableData[$table] = json_decode($json, true);
+        }
+        $zip->close();
+
+        try {
+            DB::transaction(function () use ($tableData) {
+                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+                // Clear tables in reverse FK order
+                $clearOrder = [
+                    'activity_logs', 'settings', 'help_requests', 'notifications',
+                    'attendances', 'journals', 'pembimbings', 'siswas', 'users', 'dudis', 'kelas',
+                ];
+                foreach ($clearOrder as $table) {
+                    DB::table($table)->delete();
+                }
+
+                // Insert data in FK-safe order
+                $insertOrder = [
+                    'kelas', 'dudis', 'users', 'siswas', 'pembimbings',
+                    'journals', 'attendances', 'notifications', 'help_requests',
+                    'settings', 'activity_logs',
+                ];
+                foreach ($insertOrder as $table) {
+                    if (!empty($tableData[$table])) {
+                        // Cast each row (stdClass or array) to array
+                        $rows = array_map(fn($row) => (array) $row, $tableData[$table]);
+                        // Insert in chunks to avoid query size limits
+                        foreach (array_chunk($rows, 200) as $chunk) {
+                            DB::table($table)->insert($chunk);
+                        }
+                    }
+                }
+
+                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            });
+
+            ActivityLog::log('Restore Data', 'Memulihkan data sistem dari file backup.');
+
+            return redirect()->route('admin.settings')->with('success', 'Data berhasil dipulihkan dari file backup!');
+        } catch (\Throwable $e) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            return back()->with('error', 'Restore gagal: ' . $e->getMessage());
+        }
+    }
 }
+

@@ -7,6 +7,7 @@ use App\Models\Journal;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
@@ -56,7 +57,7 @@ class JournalController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp,heic|max:10240',
         ]);
 
         $siswa = Auth::user()->siswa;
@@ -76,6 +77,41 @@ class JournalController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Jurnal berhasil dikirim.');
+    }
+
+    public function update(Request $request, Journal $journal)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $siswa = $user->siswa;
+
+        if ($journal->siswa_id !== $siswa->id) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp,heic|max:10240',
+        ]);
+
+        $imagePath = $journal->image_path;
+
+        if ($request->hasFile('image')) {
+            // Hapus foto lama jika ada
+            if ($journal->image_path) {
+                Storage::disk('public')->delete($journal->image_path);
+            }
+            $imagePath = $request->file('image')->store('journals', 'public');
+        }
+
+        $journal->update([
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'image_path' => $imagePath,
+        ]);
+
+        return redirect()->back()->with('success', 'Jurnal berhasil diperbarui.');
     }
 
     private function validatePKLPeriod()

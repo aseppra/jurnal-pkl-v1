@@ -3,11 +3,12 @@ import Portal from '@/Components/Portal';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
-interface Journal { id: number; date: string; title: string; description: string; status: string; statusText: string; image_path: string | null; }
+interface Journal { id: number; date: string; title: string; description: string; status: string; image_path: string | null; }
 interface Props { journals: Journal[]; filters: { filter?: string }; siswa?: { gender?: string } | null; }
 
 export default function JurnalSaya({ journals, filters, siswa }: Props) {
     const [showForm, setShowForm] = useState(false);
+    const [editingJournal, setEditingJournal] = useState<Journal | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const { props } = usePage();
     const flash = (props as any).flash;
@@ -16,14 +17,43 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
         title: '',
         description: '',
         image: null as File | null,
+        _method: '' as string,
     });
 
-    const submit = (e: React.FormEvent) => {
+    const isEditing = editingJournal !== null;
+
+    const openCreateForm = () => {
+        setEditingJournal(null);
+        reset();
+        setShowForm(true);
+    };
+
+    const handleEdit = (journal: Journal) => {
+        setEditingJournal(journal);
+        setData({ title: journal.title, description: journal.description, image: null, _method: 'PUT' });
+        setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setEditingJournal(null);
+        reset();
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('student.journal.store'), {
-            forceFormData: true,
-            onSuccess: () => { reset(); setShowForm(false); },
-        });
+        if (isEditing) {
+            post(route('student.journal.update', editingJournal!.id), {
+                forceFormData: true,
+                onSuccess: () => { reset(); setShowForm(false); setEditingJournal(null); },
+            });
+        } else {
+            post(route('student.journal.store'), {
+                forceFormData: true,
+                onSuccess: () => { reset(); setShowForm(false); },
+            });
+        }
     };
 
     return (
@@ -33,6 +63,11 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
             {flash?.success && (
                 <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm">check_circle</span>{flash.success}
+                </div>
+            )}
+            {flash?.error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">error</span>{flash.error}
                 </div>
             )}
 
@@ -64,21 +99,31 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
                 </div>
 
                 {/* Mobile: icon-only button */}
-                <button onClick={() => setShowForm(!showForm)} className="sm:hidden shrink-0 size-10 flex items-center justify-center bg-primary text-white rounded-xl shadow-md hover:bg-primary/90 transition-all">
+                <button onClick={() => showForm ? handleCloseForm() : openCreateForm()} className="sm:hidden shrink-0 size-10 flex items-center justify-center bg-primary text-white rounded-xl shadow-md hover:bg-primary/90 transition-all">
                     <span className="material-symbols-outlined text-[20px]">{showForm ? 'close' : 'add'}</span>
                 </button>
 
                 {/* Desktop: full button */}
-                <button onClick={() => setShowForm(!showForm)} className="hidden sm:flex shrink-0 items-center gap-1.5 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all">
+                <button onClick={() => showForm ? handleCloseForm() : openCreateForm()} className="hidden sm:flex shrink-0 items-center gap-1.5 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-md hover:bg-primary/90 transition-all">
                     <span className="material-symbols-outlined text-[18px]">{showForm ? 'close' : 'add'}</span>
                     {showForm ? 'Tutup' : 'Tulis Jurnal'}
                 </button>
             </div>
 
-            {/* Journal Form */}
+            {/* Journal Form (Create / Edit) */}
             {showForm && (
-                <form onSubmit={submit} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-                    <h4 className="font-bold text-slate-900">Jurnal Baru</h4>
+                <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary text-[20px]">{isEditing ? 'edit' : 'edit_note'}</span>
+                            {isEditing ? 'Edit Jurnal' : 'Jurnal Baru'}
+                        </h4>
+                        {isEditing && (
+                            <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+                                Mengedit: {editingJournal!.date}
+                            </span>
+                        )}
+                    </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Judul Kegiatan</label>
                         <input type="text" value={data.title} onChange={e => setData('title', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Contoh: Membuat desain halaman login" />
@@ -90,13 +135,25 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
                         {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
                     </div>
                     <div>
-                        <label htmlFor="image" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Foto Dokumentasi (opsional)</label>
-                        <input id="image" title="Foto Dokumentasi Jurnal" type="file" accept="image/*" onChange={e => setData('image', e.target.files?.[0] || null)} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        <label htmlFor="journal-image" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                            Foto Dokumentasi {isEditing ? '(kosongkan jika tidak ingin mengganti)' : '(opsional)'}
+                        </label>
+                        {isEditing && editingJournal!.image_path && (
+                            <div className="mb-2 flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                <span className="material-symbols-outlined text-sm text-indigo-500">photo</span>
+                                <span className="text-xs text-indigo-600 font-medium">Pilih foto baru untuk mengganti.</span>
+                            </div>
+                        )}
+                        <input id="journal-image" title="Foto Dokumentasi Jurnal" type="file" accept="image/*" onChange={e => setData('image', e.target.files?.[0] || null)} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                        <p className="text-[10px] text-slate-400 mt-1">Maks. 10MB (JPG, PNG, JPEG)</p>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-3 pt-1">
+                        <button type="button" onClick={handleCloseForm} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">
+                            Batal
+                        </button>
                         <button type="submit" disabled={processing} className="px-6 py-2.5 bg-primary text-white rounded-lg text-sm font-bold shadow-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
-                            {processing ? 'Mengirim...' : 'Kirim Jurnal'}
-                            {!processing && <span className="material-symbols-outlined text-sm">send</span>}
+                            {processing ? (isEditing ? 'Menyimpan...' : 'Mengirim...') : (isEditing ? 'Simpan Perubahan' : 'Kirim Jurnal')}
+                            {!processing && <span className="material-symbols-outlined text-sm">{isEditing ? 'save' : 'send'}</span>}
                         </button>
                     </div>
                 </form>
@@ -105,27 +162,35 @@ export default function JurnalSaya({ journals, filters, siswa }: Props) {
             {/* Journal List */}
             <div className="space-y-3">
                 {journals.length > 0 ? journals.map(j => (
-                    <div key={j.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between gap-3">
+                    <div key={j.id} className={`bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition-all ${editingJournal?.id === j.id ? 'border-primary/50 ring-2 ring-primary/10' : 'border-slate-200'}`}>
+                        <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="text-sm font-bold text-slate-900 truncate">{j.title}</h4>
-                                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${j.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : j.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{j.statusText}</span>
-                                </div>
+                                <h4 className="text-sm font-bold text-slate-900 break-words mb-1">{j.title}</h4>
                                 <p className="text-[11px] text-slate-400 flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[11px]">calendar_today</span>{j.date}
                                 </p>
-                                <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">{j.description}</p>
+                                <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed break-words">{j.description}</p>
                             </div>
-                            {j.image_path && (
+
+                            {/* Action Icon Buttons */}
+                            <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                                {j.image_path && (
+                                    <button
+                                        title="Lihat Foto Dokumentasi"
+                                        onClick={() => setPreviewImage(`/storage/${j.image_path}`)}
+                                        className="size-8 flex items-center justify-center rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border border-indigo-200"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">visibility</span>
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => setPreviewImage(`/storage/${j.image_path}`)}
-                                    className="shrink-0 inline-flex items-center gap-1.5 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-bold transition-colors border border-indigo-200"
+                                    title="Edit Jurnal"
+                                    onClick={() => handleEdit(j)}
+                                    className={`size-8 flex items-center justify-center rounded-lg transition-colors border ${editingJournal?.id === j.id ? 'bg-primary text-white border-primary shadow-sm' : 'bg-amber-50 hover:bg-amber-100 text-amber-600 border-amber-200'}`}
                                 >
-                                    <span className="material-symbols-outlined text-[16px]">photo_camera</span>
-                                    Lihat Bukti
+                                    <span className="material-symbols-outlined text-[18px]">edit</span>
                                 </button>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )) : (

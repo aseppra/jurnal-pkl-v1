@@ -36,10 +36,13 @@ class DashboardController extends Controller
         $pklEndStr = Setting::getValue('pkl_end');
         $pklStart = $pklStartStr ? Carbon::parse($pklStartStr)->startOfDay() : null;
         $pklEnd = $pklEndStr ? Carbon::parse($pklEndStr)->endOfDay() : null;
-        
-        $totalDays = $pklStart && $pklEnd ? $pklStart->diffInDays($pklEnd) : 0;
-        $elapsedDays = $pklStart ? max($pklStart->diffInDays($today, false), 0) : 0;
-        $progress = $totalDays > 0 ? min(round(($elapsedDays / $totalDays) * 100), 100) : 0;
+
+        // Gunakan startOfDay untuk keduanya agar diffInDays selalu integer
+        $pklEndForCalc = $pklEndStr ? Carbon::parse($pklEndStr)->startOfDay() : null;
+
+        $totalDays = $pklStart && $pklEndForCalc ? (int) $pklStart->diffInDays($pklEndForCalc) : 0;
+        $elapsedDays = $pklStart ? (int) max(0, min($pklStart->diffInDays($today, false), $totalDays)) : 0;
+        $progress = $totalDays > 0 ? min((int) round(($elapsedDays / $totalDays) * 100), 100) : 0;
 
         $isPKLActive = false;
         $pklStatusMessage = 'Belum dikonfigurasi';
@@ -51,6 +54,7 @@ class DashboardController extends Controller
             } elseif ($now->isAfter($pklEnd)) {
                 $pklStatusMessage = 'PKL telah selesai';
                 $progress = 100;
+                $elapsedDays = $totalDays;
             } else {
                 $isPKLActive = true;
                 $pklStatusMessage = 'Sedang berlangsung';
@@ -81,6 +85,8 @@ class DashboardController extends Controller
                 'progress' => $progress,
                 'isActive' => $isPKLActive,
                 'statusMessage' => $pklStatusMessage,
+                'totalDays' => $totalDays,
+                'elapsedDays' => $elapsedDays,
             ],
             'todayAttendance' => $todayAttendance,
             'weeklyAttendance' => $weeklyAttendance,
@@ -96,9 +102,7 @@ class DashboardController extends Controller
         }
 
         $request->validate([
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp,heic|max:10240',
         ]);
 
         /** @var \App\Models\User $user */
@@ -114,8 +118,6 @@ class DashboardController extends Controller
                 'check_in' => Carbon::now()->format('H:i'),
                 'status' => 'hadir',
                 'location' => $siswa->dudi?->name,
-                'check_in_lat' => $request->latitude,
-                'check_in_lng' => $request->longitude,
                 'photo_check_in' => $photoPath,
             ]
         );
@@ -126,8 +128,6 @@ class DashboardController extends Controller
                 'type' => 'checkin',
                 'time' => $attendance->check_in,
                 'photo' => $photoPath,
-                'lat' => $request->latitude,
-                'lng' => $request->longitude,
             ]
         ]);
     }
@@ -141,9 +141,7 @@ class DashboardController extends Controller
         }
 
         $request->validate([
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp,heic|max:10240',
         ]);
 
         /** @var \App\Models\User $user */
@@ -158,8 +156,6 @@ class DashboardController extends Controller
 
             $attendance->update([
                 'check_out' => Carbon::now()->format('H:i'),
-                'check_out_lat' => $request->latitude,
-                'check_out_lng' => $request->longitude,
                 'photo_check_out' => $photoPath,
             ]);
             
@@ -169,8 +165,6 @@ class DashboardController extends Controller
                     'type' => 'checkout',
                     'time' => $attendance->check_out,
                     'photo' => $photoPath,
-                    'lat' => $request->latitude,
-                    'lng' => $request->longitude,
                 ]
             ]);
         }

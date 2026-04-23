@@ -101,6 +101,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::post('/settings/reset-all', [\App\Http\Controllers\Admin\SettingsController::class, 'resetAll'])->name('admin.settings.reset-all');
     Route::post('/settings/admin', [\App\Http\Controllers\Admin\SettingsController::class, 'storeAdmin'])->name('admin.settings.store-admin');
     Route::put('/settings/admin/{user}', [\App\Http\Controllers\Admin\SettingsController::class, 'updateAdmin'])->name('admin.settings.update-admin');
+    Route::get('/settings/backup', [\App\Http\Controllers\Admin\SettingsController::class, 'backup'])->name('admin.settings.backup');
+    Route::post('/settings/restore', [\App\Http\Controllers\Admin\SettingsController::class, 'restore'])->name('admin.settings.restore');
 
     // Log Aktivitas
     Route::get('/log-aktivitas', [\App\Http\Controllers\Admin\LogAktivitasController::class, 'index'])->name('admin.log-aktivitas');
@@ -129,6 +131,7 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
 
     Route::get('/jurnal-saya', [JournalController::class, 'index'])->name('student.journal');
     Route::post('/jurnal-saya', [JournalController::class, 'store'])->name('student.journal.store');
+    Route::put('/jurnal-saya/{journal}', [JournalController::class, 'update'])->name('student.journal.update');
 
     Route::get('/profile', [StudentProfileController::class, 'index'])->name('student.profile');
 
